@@ -1,14 +1,13 @@
 import { streamText, createDataStreamResponse } from 'ai'
-import { openai } from '@ai-sdk/openai'
+import { openai, createOpenAI } from '@ai-sdk/openai'
 import { anthropic } from '@ai-sdk/anthropic'
 import { google } from '@ai-sdk/google'
-import { createOpenAI } from '@ai-sdk/openai'
 import { NextResponse, type NextRequest } from 'next/server'
 import { waitUntil } from '@vercel/functions'
 import { logger } from '@/lib/logger'
 import { createClient } from '@/lib/supabase/server'
 import { processMessageKnowledge } from '@/lib/knowledge'
-import { getModel, DEFAULT_MODEL_ID, type Provider } from '@/lib/models'
+import { getModel, DEFAULT_MODEL_ID, type Provider, type ModelDefinition } from '@/lib/models'
 
 // xAI (Grok) is OpenAI compatible
 const xai = createOpenAI({
@@ -31,8 +30,7 @@ export function resolveProvider(id: string): { provider: string; apiKey: string 
   return { provider: def.provider, apiKey: PROVIDER_ENV[def.provider] }
 }
 
-function buildAiModel(id: string) {
-  const def = getModel(id)!
+function buildAiModel(def: ModelDefinition) {
   switch (def.provider) {
     case 'openai':    return openai(def.id)
     case 'anthropic': return anthropic(def.id)
@@ -179,7 +177,7 @@ export async function POST(req: NextRequest) {
     }
 
     console.log(`[${requestId}] Instantiating AI model: ${selectedModel} from ${provider}`)
-    const aiModel = buildAiModel(selectedModel)
+    const aiModel = buildAiModel(modelDef)
 
     console.log(`[${requestId}] Starting streamText...`)
     return createDataStreamResponse({
