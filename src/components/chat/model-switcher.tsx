@@ -1,55 +1,80 @@
-"use client";
+'use client'
 
-import * as React from "react"
-import { Check, ChevronsUpDown } from "lucide-react"
+import * as React from 'react'
+import { Check, ChevronsUpDown, Sparkles } from 'lucide-react'
 
-import { cn } from "@/lib/utils"
-import { Button, buttonVariants } from "@/components/ui/button"
+import { cn } from '@/lib/utils'
+import { buttonVariants } from '@/components/ui/button'
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-
-const models = [
-  { value: "gpt-4o", label: "GPT-4o" },
-  { value: "claude-3-5-sonnet-20240620", label: "Claude 3.5 Sonnet" },
-  { value: "models/gemini-1.5-pro", label: "Gemini 1.5 Pro" },
-  { value: "grok-2", label: "Grok 2" },
-]
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
+import { MODELS } from '@/lib/models'
 
 interface ModelSwitcherProps {
-  activeModel: string;
+  selectedModel: string;
   onModelChange: (model: string) => void;
 }
 
-export function ModelSwitcher({ activeModel, onModelChange }: ModelSwitcherProps) {
-  const selectedModel = models.find((model) => model.value === activeModel) || models[0];
+export function ModelSwitcher({ selectedModel, onModelChange }: ModelSwitcherProps) {
+  const [open, setOpen] = React.useState(false)
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger
-        className={cn(buttonVariants({ variant: "outline" }), "w-[200px] justify-between")}
-        role="combobox"
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger
+        className={cn(
+          buttonVariants({ variant: "outline" }),
+          "w-[240px] justify-between font-normal"
+        )}
       >
-        {selectedModel.label}
+        <span className="truncate flex items-center gap-2">
+          {selectedModel.startsWith('gpt-') && <Sparkles className="size-3.5 text-yellow-500" />}
+          {selectedModel
+            ? MODELS.find((model) => model.id === selectedModel)?.label || selectedModel
+            : "Select model..."}
+        </span>
         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-      </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-[200px] p-0">
-        {models.map((model) => (
-          <DropdownMenuItem
-            key={model.value}
-            onSelect={() => onModelChange(model.value)}
-            className="flex items-center justify-between cursor-pointer"
-          >
-            {model.label}
-            {activeModel === model.value && (
-              <Check className="h-4 w-4" />
-            )}
-          </DropdownMenuItem>
-        ))}
-      </DropdownMenuContent>
-    </DropdownMenu>
+      </PopoverTrigger>
+      <PopoverContent className="w-[240px] p-0">
+        <Command>
+          <CommandInput placeholder="Search model..." />
+          <CommandList>
+            <CommandEmpty>No model found.</CommandEmpty>
+            <CommandGroup>
+              {MODELS.map((model) => (
+                <CommandItem
+                  key={model.id}
+                  value={model.id}
+                  onSelect={(currentValue) => {
+                    console.log(">>> Frontend Pipeline: Model selected in switcher", { from: selectedModel, to: currentValue });
+                    onModelChange(currentValue)
+                    setOpen(false)
+                  }}
+                >
+                  <Check
+                    className={cn(
+                      "mr-2 h-4 w-4",
+                      selectedModel === model.id ? "opacity-100" : "opacity-0"
+                    )}
+                  />
+                  <div className="flex items-center gap-2">
+                    {model.label}
+                  </div>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
   )
 }
