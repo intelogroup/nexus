@@ -29,8 +29,7 @@ export const MODELS: readonly ModelDefinition[] = [
 export const DEFAULT_MODEL_ID = 'claude-sonnet-4-6'
 
 // Startup assertion: fail fast if DEFAULT_MODEL_ID is not in MODELS
-const _check = MODELS.find(m => m.id === DEFAULT_MODEL_ID)
-if (!_check) {
+if (!MODELS.find(m => m.id === DEFAULT_MODEL_ID)) {
   throw new Error(`DEFAULT_MODEL_ID "${DEFAULT_MODEL_ID}" is not present in MODELS`)
 }
 

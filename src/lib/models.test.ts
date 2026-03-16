@@ -8,12 +8,13 @@ describe('MODELS registry', () => {
     expect(ids.length).toBe(unique.size)
   })
 
-  it('every entry has non-empty id, label, and valid provider', () => {
+  it('every entry has non-empty id, label, valid provider, and boolean supportsTemperature', () => {
     const validProviders = ['openai', 'anthropic', 'google', 'xai']
     for (const m of MODELS) {
       expect(m.id.length).toBeGreaterThan(0)
       expect(m.label.length).toBeGreaterThan(0)
       expect(validProviders).toContain(m.provider)
+      expect(typeof m.supportsTemperature).toBe('boolean')
     }
   })
 
