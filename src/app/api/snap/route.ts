@@ -11,6 +11,7 @@ const SnapGraphSchema = z.object({
     id: z.string(),
     label: z.string(),
     category: z.enum(['root', 'agreed', 'open', 'next', 'topic', 'point']),
+    description: z.string().optional(), // 1-2 sentence context per node
   })),
   edges: z.array(z.object({
     source: z.string(),
@@ -41,7 +42,8 @@ Rules:
 - Labels must be ≤ 6 words
 - Maximum 20 nodes total
 - Every edge must reference valid node IDs
-- Node IDs must be unique strings (e.g. "n1", "n2")`
+- Node IDs must be unique strings (e.g. "n1", "n2")
+- Each node must include a "description": 1-2 sentences explaining what this node represents in the conversation. Be specific and reference actual content from the conversation.`
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient()

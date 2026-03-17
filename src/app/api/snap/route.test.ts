@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import type { SnapGraph } from './route'
 
 vi.mock('@ai-sdk/anthropic', () => ({
   anthropic: vi.fn((model: string) => ({ model, provider: 'anthropic' })),
@@ -22,6 +23,28 @@ function makeRequest(body: unknown) {
     headers: { 'Content-Type': 'application/json' },
   })
 }
+
+describe('SnapGraph type', () => {
+  it('accepts a node with description', () => {
+    const graph: SnapGraph = {
+      type: 'summary',
+      title: 'Test',
+      nodes: [{ id: 'n1', label: 'Node', category: 'root', description: 'A root node.' }],
+      edges: [],
+    }
+    expect(graph.nodes[0].description).toBe('A root node.')
+  })
+
+  it('accepts a node without description (optional)', () => {
+    const graph: SnapGraph = {
+      type: 'summary',
+      title: 'Test',
+      nodes: [{ id: 'n1', label: 'Node', category: 'root' }],
+      edges: [],
+    }
+    expect(graph.nodes[0].description).toBeUndefined()
+  })
+})
 
 describe('POST /api/snap', () => {
   beforeEach(() => {

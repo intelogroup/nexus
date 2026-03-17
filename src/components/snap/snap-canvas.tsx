@@ -16,6 +16,7 @@ const SnapGraphSchema = z.object({
     id: z.string(),
     label: z.string(),
     category: z.enum(['root', 'agreed', 'open', 'next', 'topic', 'point']),
+    description: z.string().optional(), // NEW
   })).optional(),
   edges: z.array(z.object({
     source: z.string(),
