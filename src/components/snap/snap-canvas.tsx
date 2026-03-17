@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { experimental_useObject as useObject } from 'ai/react'
 import { z } from 'zod'
-import { RefreshCw } from 'lucide-react'
+import { RefreshCw, List, Share2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { buildTree } from './snap-tree'
 import type { SnapGraph } from '@/app/api/snap/route'
@@ -60,6 +60,7 @@ interface SnapCanvasProps {
 export function SnapCanvas({ messages, chatId }: SnapCanvasProps) {
   const [key, setKey] = useState(0)
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
+  const [viewMode, setViewMode] = useState<'outline' | 'flow'>('outline')
   const [cachedGraph, setCachedGraph] = useState<SnapGraph | null>(null)
   const wasLoadingRef = useRef(false)
 
@@ -143,12 +144,29 @@ export function SnapCanvas({ messages, chatId }: SnapCanvasProps) {
   }
 
   return (
-    <div className="h-full w-full relative overflow-y-auto">
+    <div className={`h-full w-full relative ${viewMode === 'outline' ? 'overflow-y-auto' : 'overflow-hidden'}`}>
       {/* Header row */}
       <div className="sticky top-0 z-10 flex items-center justify-between px-4 py-3 bg-background border-b">
         <span className="text-sm font-semibold text-foreground truncate">
           {activeGraph?.title ?? ''}
         </span>
+        {/* View mode toggle */}
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => setViewMode('outline')}
+            className={`p-1.5 rounded ${viewMode === 'outline' ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+            aria-label="Outline view"
+          >
+            <List size={16} />
+          </button>
+          <button
+            onClick={() => setViewMode('flow')}
+            className={`p-1.5 rounded ${viewMode === 'flow' ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+            aria-label="Flow view"
+          >
+            <Share2 size={16} />
+          </button>
+        </div>
         <Button
           variant="outline"
           size="sm"
@@ -160,13 +178,20 @@ export function SnapCanvas({ messages, chatId }: SnapCanvasProps) {
         </Button>
       </div>
 
-      <OutlineView
-        root={root}
-        orphans={orphans}
-        isLoading={isLoading}
-        collapsed={collapsed}
-        onToggle={toggleCollapse}
-      />
+      {viewMode === 'outline' && (
+        <OutlineView
+          root={root}
+          orphans={orphans}
+          isLoading={isLoading}
+          collapsed={collapsed}
+          onToggle={toggleCollapse}
+        />
+      )}
+      {viewMode === 'flow' && (
+        <div className="flex items-center justify-center py-16">
+          <p className="text-sm text-muted-foreground">Flow view coming soon…</p>
+        </div>
+      )}
     </div>
   )
 }
