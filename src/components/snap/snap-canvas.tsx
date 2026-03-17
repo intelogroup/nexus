@@ -9,7 +9,6 @@ import {
   type Edge,
 } from '@xyflow/react'
 import dagre from 'dagre'
-import '@xyflow/react/dist/style.css'
 import { experimental_useObject as useObject } from 'ai/react'
 import { z } from 'zod'
 import { SnapNode, type SnapNodeData } from './snap-node'
@@ -92,23 +91,26 @@ export function SnapCanvas({ messages, chatId }: SnapCanvasProps) {
   }, [key])
 
   const handleRegenerate = () => {
-    stop()
+    try { stop() } catch { /* AbortError from cancelling in-flight stream is expected */ }
     setKey(k => k + 1)
   }
 
-  const rawNodes = object?.nodes ?? []
-  const rawEdges = object?.edges ?? []
+  // Filter to only fully-streamed nodes (all required fields present) to avoid
+  // duplicate React keys and dagre crashes from partial streaming objects.
+  const rawNodes = (object?.nodes ?? []).filter(n => n?.id && n?.label && n?.category) as NonNullable<SnapGraph['nodes']>
+  // Only include edges where both endpoints exist in the current node set.
+  const nodeIds = new Set(rawNodes.map(n => n.id))
+  const rawEdges = (object?.edges ?? []).filter(e => e?.source && e?.target && nodeIds.has(e.source) && nodeIds.has(e.target)) as NonNullable<SnapGraph['edges']>
 
   const flowNodes: Node[] = rawNodes.length > 0
-    ? applyDagreLayout(rawNodes as NonNullable<SnapGraph['nodes']>, rawEdges as NonNullable<SnapGraph['edges']>)
+    ? applyDagreLayout(rawNodes, rawEdges)
     : []
 
   const flowEdges: Edge[] = rawEdges
-    .filter(e => e?.source && e?.target)
     .map((e, i) => ({
       id: `e${i}`,
-      source: e.source!,
-      target: e.target!,
+      source: e.source,
+      target: e.target,
       style: { stroke: '#cbd5e1', strokeWidth: 1.5 },
     }))
 
