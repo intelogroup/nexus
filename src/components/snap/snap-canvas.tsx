@@ -123,7 +123,7 @@ export function SnapCanvas({ messages, chatId }: SnapCanvasProps) {
   // Filter streaming nodes to fully-present only
   const rawNodes = (activeGraph?.nodes ?? []).filter(
     n => n?.id && n?.label && n?.category,
-  ) as { id: string; label: string; category: 'root' | 'agreed' | 'open' | 'next' | 'topic' | 'point' }[]
+  ) as { id: string; label: string; category: 'root' | 'agreed' | 'open' | 'next' | 'topic' | 'point'; description?: string }[]
 
   const nodeIds = new Set(rawNodes.map(n => n.id))
   const rawEdges = (activeGraph?.edges ?? []).filter(
@@ -190,7 +190,7 @@ export function SnapCanvas({ messages, chatId }: SnapCanvasProps) {
       )}
       {viewMode === 'flow' && (
         <FlowView
-          initialNodes={rawNodes as { id: string; label: string; category: string; description?: string }[]}
+          initialNodes={rawNodes}
           initialEdges={rawEdges}
           isLoading={isLoading}
         />
