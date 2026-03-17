@@ -5,7 +5,7 @@ import { Sidebar } from "@/components/chat/sidebar";
 import { Topbar } from "@/components/chat/topbar";
 import { ChatProvider, useChatContext } from "@/components/chat/chat-context";
 import { MountedOnly } from "@/components/mounted-only";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 interface LayoutClientProps {
   children: React.ReactNode;
@@ -17,6 +17,7 @@ function LayoutContent({ children, initialChats }: LayoutClientProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const currentView = pathname === "/graph" ? "graph" : pathname === "/snap" ? "snap" : "chat";
 
@@ -24,9 +25,10 @@ function LayoutContent({ children, initialChats }: LayoutClientProps) {
     if (view === "graph") {
       router.push("/graph");
     } else if (view === "snap") {
-      // Extract chatId from current pathname /chats/[id] if present
-      const chatIdMatch = pathname.match(/^\/chats\/([^/]+)/)
-      const chatId = chatIdMatch?.[1]
+      // Try pathname first (/chats/[id]), then fall back to current query param
+      // (handles the case where we're already on /snap?chatId=...)
+      const chatIdFromPath = pathname.match(/^\/chats\/([^/]+)/)?.[1]
+      const chatId = chatIdFromPath ?? searchParams.get("chatId") ?? undefined
       router.push(chatId ? `/snap?chatId=${chatId}` : "/snap")
     } else {
       router.push("/");
