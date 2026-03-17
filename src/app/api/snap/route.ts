@@ -50,22 +50,40 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const body = await req.json()
-  const { messages, chatId } = body
-
-  if (!messages || !Array.isArray(messages) || messages.length === 0) {
-    return NextResponse.json({ error: 'messages must be a non-empty array' }, { status: 400 })
+  let body: { messages?: unknown }
+  try {
+    body = await req.json()
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
   }
 
-  const conversationText = messages
-    .map((m: { role: string; content: string }) => `${m.role}: ${m.content}`)
-    .join('\n')
+  const { messages } = body
+  // chatId is received for client-side tracking only; route is ephemeral — no DB reads/writes.
 
-  const result = await streamObject({
-    model: anthropic('claude-sonnet-4-6'),
-    schema: SnapGraphSchema,
-    prompt: `${SYSTEM_PROMPT}\n\nConversation:\n${conversationText}`,
-  })
+  if (!messages || !Array.isArray(messages) || messages.length === 0) {
+    return NextResponse.json({ error: 'Invalid request: messages must be a non-empty array' }, { status: 400 })
+  }
 
-  return result.toTextStreamResponse()
+  // Guard against excessively large payloads
+  const totalSize = JSON.stringify(messages).length
+  if (totalSize > 100000) {
+    return NextResponse.json({ error: 'Request too large. Maximum message size is 100KB' }, { status: 413 })
+  }
+
+  try {
+    const conversationText = (messages as { role: string; content: string }[])
+      .map(m => `${m.role}: ${m.content}`)
+      .join('\n')
+
+    const result = await streamObject({
+      model: anthropic('claude-sonnet-4-6'),
+      schema: SnapGraphSchema,
+      prompt: `${SYSTEM_PROMPT}\n\nConversation:\n${conversationText}`,
+    })
+
+    return result.toTextStreamResponse()
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    return NextResponse.json({ error: `Stream error: ${message}` }, { status: 500 })
+  }
 }
