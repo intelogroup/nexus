@@ -16,6 +16,10 @@ import { SnapNode, type SnapNodeData } from './snap-node'
 import { Button } from '@/components/ui/button'
 import { RefreshCw } from 'lucide-react'
 
+// All fields are optional: `useObject` delivers a DeepPartial as the stream arrives,
+// so intermediate values are incomplete. The server-side schema (route.ts) uses
+// required fields for full validation. The `as NonNullable<...>` casts below are
+// safe because of the `rawNodes.length > 0` guard.
 const SnapGraphSchema = z.object({
   type: z.enum(['brainstorm', 'summary', 'technical']).optional(),
   title: z.string().optional(),
@@ -80,7 +84,11 @@ export function SnapCanvas({ messages, chatId }: SnapCanvasProps) {
   useEffect(() => {
     generate()
     return () => { stop() }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // Intentionally omit `generate` from deps: this effect should only
+    // re-run when `key` changes (mount + Regenerate click), not whenever
+    // `messages` or `chatId` change. `generate` is stable (useCallback)
+    // but including it would re-trigger on every parent re-render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key])
 
   const handleRegenerate = () => {
