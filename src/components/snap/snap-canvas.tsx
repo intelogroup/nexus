@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { buildTree } from './snap-tree'
 import type { SnapGraph } from '@/app/api/snap/route'
 import { OutlineView } from './outline-view'
+import { FlowView } from './flow-view'
 
 // Client-side schema: all fields optional (DeepPartial during streaming)
 const SnapGraphSchema = z.object({
@@ -188,9 +189,11 @@ export function SnapCanvas({ messages, chatId }: SnapCanvasProps) {
         />
       )}
       {viewMode === 'flow' && (
-        <div className="flex items-center justify-center py-16">
-          <p className="text-sm text-muted-foreground">Flow view coming soon…</p>
-        </div>
+        <FlowView
+          initialNodes={rawNodes as { id: string; label: string; category: string; description?: string }[]}
+          initialEdges={rawEdges}
+          isLoading={isLoading}
+        />
       )}
     </div>
   )
