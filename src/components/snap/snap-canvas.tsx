@@ -24,10 +24,10 @@ const SnapGraphSchema = z.object({
 })
 
 // ─── Category styles ────────────────────────────────────────────────
-type CategoryStyle = { bg: string; border: string; icon: string }
+type CategoryStyle = { bg: string; border?: string; icon: string }
 
 const CATEGORY_STYLES: Record<string, CategoryStyle> = {
-  root:   { bg: '#1a1a2e', border: 'none',    icon: '🗨' },
+  root:   { bg: '#1a1a2e',                    icon: '🗨' },
   agreed: { bg: '#dcfce7', border: '#22c55e', icon: '✅' },
   open:   { bg: '#fef9c3', border: '#eab308', icon: '⚠️' },
   next:   { bg: '#dbeafe', border: '#3b82f6', icon: '➡' },
@@ -64,7 +64,7 @@ function OutlineNode({
         <div
           style={{
             background: style.bg,
-            border: style.border !== 'none' ? `1.5px solid ${style.border}` : 'none',
+            border: style.border ? `1.5px solid ${style.border}` : 'none',
             borderRadius: 8,
             padding: '7px 10px',
             color: isRoot ? '#fff' : '#1a1a2e',
@@ -180,6 +180,8 @@ export function SnapCanvas({ messages, chatId }: SnapCanvasProps) {
 
   const handleRegenerate = () => {
     setCachedGraph(null)
+    setCollapsed(new Set())
+    wasLoadingRef.current = false
     try { stop() } catch { /* AbortError expected */ }
     setKey(k => k + 1)
   }
