@@ -40,13 +40,13 @@ export function buildConnectedLabels(
 }
 
 // ─── Dagre layout ───────────────────────────────────────────────────
-const NODE_WIDTH = 200
-const NODE_HEIGHT = 48
+const NODE_WIDTH = 220
+const NODE_HEIGHT = 60
 
 function applyDagreLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; edges: Edge[] } {
   const g = new dagre.graphlib.Graph()
   g.setDefaultEdgeLabel(() => ({}))
-  g.setGraph({ rankdir: 'TB', ranksep: 60, nodesep: 40 })
+  g.setGraph({ rankdir: 'LR', ranksep: 80, nodesep: 24 })
 
   nodes.forEach(n => g.setNode(n.id, { width: NODE_WIDTH, height: NODE_HEIGHT }))
   edges.forEach(e => g.setEdge(e.source, e.target))
