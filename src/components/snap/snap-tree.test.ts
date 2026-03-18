@@ -58,4 +58,12 @@ describe('buildTree', () => {
     expect(root?.id).toBe('n1')
     expect(root?.children).toEqual([])
   })
+
+  it('does not infinite-loop when the LLM produces a cycle', () => {
+    const cyclicEdges = [
+      ...EDGES,
+      { source: 'n3', target: 'n2' }, // back-edge: point → its own grandparent topic
+    ]
+    expect(() => buildTree(NODES, cyclicEdges)).not.toThrow()
+  })
 })

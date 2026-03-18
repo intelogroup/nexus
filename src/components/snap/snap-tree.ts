@@ -42,7 +42,7 @@ export function buildTree(nodes: RawNode[], edges: RawEdge[]): TreeResult {
     return {
       ...node,
       children: childIds
-        .filter(cid => nodeMap.has(cid))
+        .filter(cid => nodeMap.has(cid) && !visited.has(cid))
         .map(cid => buildNode(cid)),
     }
   }
