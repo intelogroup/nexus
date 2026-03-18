@@ -51,6 +51,6 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  const remaining = nodes.length === limit; // if we got a full page, there may be more
-  return NextResponse.json({ classified, offset, done: !remaining });
+  const done = nodes.length < limit;
+  return NextResponse.json({ classified, offset, done });
 }
