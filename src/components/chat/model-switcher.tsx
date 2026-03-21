@@ -55,7 +55,6 @@ export function ModelSwitcher({ selectedModel, onModelChange }: ModelSwitcherPro
                   key={model.id}
                   value={model.id}
                   onSelect={(currentValue) => {
-                    console.log(">>> Frontend Pipeline: Model selected in switcher", { from: selectedModel, to: currentValue });
                     onModelChange(currentValue)
                     setOpen(false)
                   }}
