@@ -19,10 +19,12 @@ function LayoutContent({ children, initialChats }: LayoutClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const currentView = pathname === "/graph" ? "graph" : pathname === "/snap" ? "snap" : "chat";
+  const currentView = pathname === "/graph" ? "graph" : pathname === "/snap" ? "snap" : pathname === "/knowledge" ? "knowledge" : "chat";
 
-  const handleViewChange = (view: "chat" | "graph" | "snap") => {
-    if (view === "graph") {
+  const handleViewChange = (view: "chat" | "graph" | "snap" | "knowledge") => {
+    if (view === "knowledge") {
+      router.push("/knowledge");
+    } else if (view === "graph") {
       router.push("/graph");
     } else if (view === "snap") {
       // Try pathname first (/chats/[id]), then fall back to current query param
