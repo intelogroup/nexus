@@ -1,19 +1,14 @@
 import { streamText, createDataStreamResponse } from 'ai'
 import { openai, createOpenAI } from '@ai-sdk/openai'
 import { anthropic } from '@ai-sdk/anthropic'
-import { google } from '@ai-sdk/google'
+import { createGoogleGenerativeAI } from '@ai-sdk/google'
 import { NextResponse, type NextRequest } from 'next/server'
 import { waitUntil } from '@vercel/functions'
 import { logger } from '@/lib/logger'
 import { createClient } from '@/lib/supabase/server'
 import { processMessageKnowledge } from '@/lib/knowledge'
+import { buildKnowledgeContext } from '@/lib/retrieval'
 import { getModel, DEFAULT_MODEL_ID, type Provider, type ModelDefinition } from '@/lib/models'
-
-// xAI (Grok) is OpenAI compatible
-const xai = createOpenAI({
-  baseURL: 'https://api.x.ai/v1',
-  apiKey: process.env.XAI_API_KEY,
-})
 
 const PROVIDER_ENV: Record<Provider, string | undefined> = {
   openai:    process.env.OPENAI_API_KEY,
@@ -30,12 +25,12 @@ export function resolveProvider(id: string): { provider: string; apiKey: string 
   return { provider: def.provider, apiKey: PROVIDER_ENV[def.provider] }
 }
 
-function buildAiModel(def: ModelDefinition) {
+function buildAiModel(def: ModelDefinition, apiKey: string) {
   switch (def.provider) {
     case 'openai':    return openai(def.id)
     case 'anthropic': return anthropic(def.id)
-    case 'google':    return google(def.id)
-    case 'xai':       return xai(def.id)
+    case 'google':    return createGoogleGenerativeAI({ apiKey })(def.id)
+    case 'xai':       return createOpenAI({ baseURL: 'https://api.x.ai/v1', apiKey })(def.id)
     default: {
       const _exhaustive: never = def.provider
       throw new Error(`Unhandled provider: ${def.provider}`)
@@ -45,22 +40,22 @@ function buildAiModel(def: ModelDefinition) {
 
 export async function POST(req: NextRequest) {
   const requestId = globalThis.crypto?.randomUUID?.() ?? `req_${Date.now()}`
-  console.log(`[${requestId}] >>> Backend Pipeline: Incoming chat request`)
+  logger.info('Backend Pipeline: Incoming chat request', { requestId })
 
   try {
     const { messages, model, chatId: incomingChatId } = await req.json()
-    console.log(`[${requestId}] Request Body:`, { model, chatId: incomingChatId, messageCount: messages?.length })
+    logger.info('Request body parsed', { requestId, model, chatId: incomingChatId, messageCount: messages?.length })
 
     // Validate request payload
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
-      console.warn(`[${requestId}] Invalid request: messages must be a non-empty array`)
+      logger.warn('Invalid request: messages must be a non-empty array', { requestId })
       return NextResponse.json({ error: 'Invalid request: messages must be a non-empty array' }, { status: 400 })
     }
 
     // Validate message size (prevent abuse)
     const totalSize = JSON.stringify(messages).length
     if (totalSize > 100000) { // 100KB limit
-      console.warn(`[${requestId}] Request too large: ${totalSize} bytes`)
+      logger.warn('Request too large', { requestId, totalSize })
       return NextResponse.json({ error: 'Request too large. Maximum message size is 100KB' }, { status: 413 })
     }
 
@@ -72,24 +67,22 @@ export async function POST(req: NextRequest) {
     const { provider } = modelDef
     const apiKey = PROVIDER_ENV[modelDef.provider]
 
-    console.log(`[${requestId}] Selected Model: ${selectedModel}`)
-    console.log(`[${requestId}] Resolved Provider: ${provider}, hasApiKey: ${!!apiKey}`)
-
+    logger.info('Model resolved', { requestId, selectedModel, provider, hasApiKey: !!apiKey })
     logger.info('Chat request received', { requestId, model: selectedModel, provider, messageCount: messages?.length })
 
     const supabase = await createClient()
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
-      console.warn(`[${requestId}] Unauthorized: No user session found`)
+      logger.warn('Unauthorized: No user session found', { requestId })
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-    console.log(`[${requestId}] Authenticated User: ${user.id}`)
+    logger.info('User authenticated', { requestId, userId: user.id })
 
     // Resolve or create a chat session
     let chatId = incomingChatId
     if (!chatId) {
-      console.log(`[${requestId}] No chatId provided, creating new chat...`)
+      logger.info('No chatId provided, creating new chat', { requestId })
       const firstUserMessage = messages.find((m: { role: string }) => m.role === 'user')
       const title = firstUserMessage?.content?.slice(0, 80) ?? 'New Chat'
       const { data: chat, error: chatError } = await supabase
@@ -99,13 +92,12 @@ export async function POST(req: NextRequest) {
         .single()
 
       if (chatError) {
-        console.error(`[${requestId}] Chat creation failed:`, chatError.message)
         logger.error('Failed to create chat', { requestId, error: chatError.message })
         throw new Error(`Chat creation failed: ${chatError.message}`)
       }
 
       chatId = chat?.id
-      console.log(`[${requestId}] New chat created with ID: ${chatId}`)
+      logger.info('New chat created', { requestId, chatId })
 
       // Add owner to chat_members
       if (chatId) {
@@ -114,13 +106,12 @@ export async function POST(req: NextRequest) {
           .insert({ chat_id: chatId, user_id: user.id, role: 'owner' })
 
         if (memberError) {
-          console.error(`[${requestId}] Failed to add chat member:`, memberError.message)
           logger.error('Failed to add chat member', { requestId, error: memberError.message })
         }
       }
     } else {
       // Verify user has access to existing chat
-      console.log(`[${requestId}] Verifying user access to existing chat: ${chatId}`)
+      logger.info('Verifying user access to chat', { requestId, chatId })
       const { data: chatMember, error: memberCheckError } = await supabase
         .from('chat_members')
         .select('*')
@@ -129,17 +120,16 @@ export async function POST(req: NextRequest) {
         .single()
 
       if (memberCheckError || !chatMember) {
-        console.warn(`[${requestId}] Forbidden: User ${user.id} does not have access to chat ${chatId}`)
         logger.error('Forbidden chat access attempt', { requestId, userId: user.id, chatId })
         return NextResponse.json({ error: 'Forbidden: You do not have access to this chat' }, { status: 403 })
       }
-      console.log(`[${requestId}] User access verified for chat: ${chatId}`)
+      logger.info('User access verified', { requestId, chatId })
     }
 
     // Save the latest user message
     const lastUserMessage = [...messages].reverse().find((m: { role: string }) => m.role === 'user')
     if (chatId && lastUserMessage) {
-      console.log(`[${requestId}] Saving user message to database...`)
+      logger.info('Saving user message', { requestId })
       const { data: msg, error: msgError } = await supabase
         .from('messages')
         .insert({
@@ -153,22 +143,13 @@ export async function POST(req: NextRequest) {
         .single()
 
       if (msgError) {
-        console.error(`[${requestId}] Failed to save user message:`, msgError.message)
         logger.error('Failed to save user message', { requestId, error: msgError.message })
-      } else if (msg) {
-        console.log(`[${requestId}] User message saved with ID: ${msg.id}. Triggering KG processing...`)
-        // Process knowledge graph for user message (non-blocking)
-        waitUntil(
-          processMessageKnowledge(msg.id, chatId, lastUserMessage.content, user.id).catch(e => {
-            console.error(`[${requestId}] Background KG processing failed (user):`, e.message)
-            logger.error('Background KG processing failed (user)', { requestId, error: e.message })
-          })
-        )
+      } else {
+        logger.info('User message saved', { requestId, msgId: msg?.id })
       }
     }
 
     if (!apiKey) {
-      console.error(`[${requestId}] API Key Missing for provider: ${provider}`)
       logger.error('Missing API key', { requestId, provider, model: selectedModel })
       return NextResponse.json(
         { error: `Missing API key for provider: ${provider}`, requestId },
@@ -176,31 +157,57 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    console.log(`[${requestId}] Instantiating AI model: ${selectedModel} from ${provider}`)
-    const aiModel = buildAiModel(modelDef)
+    // ── Hybrid knowledge retrieval ──────────────────────────────────────────
+    // Runs in parallel with model instantiation; failure is non-fatal.
+    const [knowledgeContext] = await Promise.all([
+      buildKnowledgeContext(
+        supabase,
+        user.id,
+        lastUserMessage?.content ?? '',
+        chatId
+      ),
+    ])
 
-    console.log(`[${requestId}] Starting streamText...`)
+    // Inject knowledge context as the first system message if available.
+    // This gives the model awareness of what the user already knows across
+    // all their chats and their knowledge graph — without repeating it in
+    // every message.
+    const augmentedMessages = knowledgeContext
+      ? [
+          {
+            role: 'system' as const,
+            content: [
+              'You have access to the following personal knowledge context for this user.',
+              'Use it to give more informed, personalized responses.',
+              'Do not mention that you have this context unless directly relevant.',
+              '',
+              knowledgeContext,
+            ].join('\n'),
+          },
+          ...messages,
+        ]
+      : messages
+
+    logger.info('Starting streamText', { requestId, selectedModel, hasKnowledgeContext: !!knowledgeContext })
+    const aiModel = buildAiModel(modelDef, apiKey)
+
     return createDataStreamResponse({
       execute: (dataStream) => {
         try {
-          console.log(`[${requestId}] Writing message annotation: { model_used: ${selectedModel} }`)
           dataStream.writeMessageAnnotation({
             model_used: selectedModel,
           })
 
           const result = streamText({
             model: aiModel,
-            messages,
-            ...(modelDef.supportsTemperature ? { temperature: 1 } : {}),
+            messages: augmentedMessages,
+            temperature: 1,
             onError: (event) => {
-              console.error(`[${requestId}] streamText error:`, event.error)
               logger.error('streamText error', { requestId, error: event.error })
             },
             async onFinish({ text, usage }) {
-              console.log(`[${requestId}] Stream finished. Usage:`, usage)
               logger.info('Stream finished', { requestId, usage })
               if (chatId) {
-                console.log(`[${requestId}] Saving assistant response to database...`)
                 waitUntil((async () => {
                   const startedAt = Date.now()
                   const { data: msg, error } = await supabase.from('messages').insert({
@@ -212,19 +219,62 @@ export async function POST(req: NextRequest) {
                   }).select('id').single()
 
                   if (error) {
-                    console.error(`[${requestId}] Failed to save assistant message:`, error.message)
                     logger.error('Failed to save assistant message', { requestId, error: error.message })
                   } else if (msg) {
-                    console.log(`[${requestId}] Assistant message saved with ID: ${msg.id}. Triggering KG processing...`)
-                    // Process knowledge graph for assistant message
-                    await processMessageKnowledge(msg.id, chatId, text, user.id).catch(e => {
-                      console.error(`[${requestId}] Background KG processing failed (assistant):`, e.message)
-                      logger.error('Background KG processing failed (assistant)', { requestId, error: e.message })
-                    })
+                    logger.info('Assistant message saved', { requestId, msgId: msg.id })
+
+                    // ── KG extraction throttle ──────────────────────────────
+                    // Run extraction on a window of messages rather than every
+                    // message. Triggers when:
+                    //   • 50+ messages since last extraction, OR
+                    //   • 6h have elapsed since last extraction AND ≥10 messages
+                    const KG_WINDOW_SIZE = 50
+                    const KG_TIME_HOURS  = 6
+                    const KG_TIME_MIN    = 10
+
+                    const { data: chat } = await supabase
+                      .from('chats')
+                      .select('last_kg_extraction_at')
+                      .eq('id', chatId)
+                      .single()
+
+                    const since = chat?.last_kg_extraction_at ?? null
+                    const sinceQuery = supabase
+                      .from('messages')
+                      .select('id, content, sender_role', { count: 'exact' })
+                      .eq('chat_id', chatId)
+                      .order('created_at', { ascending: true })
+
+                    if (since) sinceQuery.gt('created_at', since)
+
+                    const { data: windowMsgs, count: windowCount } = await sinceQuery
+
+                    const elapsed = since
+                      ? (Date.now() - new Date(since).getTime()) / 3600000
+                      : Infinity
+
+                    const hitSizeThreshold = (windowCount ?? 0) >= KG_WINDOW_SIZE
+                    const hitTimeThreshold = elapsed >= KG_TIME_HOURS && (windowCount ?? 0) >= KG_TIME_MIN
+
+                    if ((hitSizeThreshold || hitTimeThreshold) && windowMsgs && windowMsgs.length > 0) {
+                      logger.info('KG extraction threshold reached', { requestId, windowCount, elapsed: elapsed.toFixed(1), trigger: hitSizeThreshold ? 'size' : 'time' })
+
+                      // Process each message in the window sequentially (non-blocking overall)
+                      for (const m of windowMsgs) {
+                        await processMessageKnowledge(m.id, chatId, m.content, user.id).catch(e => {
+                          logger.error('Background KG processing failed', { requestId, msgId: m.id, error: e.message })
+                        })
+                      }
+
+                      // Stamp the extraction time so the next window starts fresh
+                      await supabase
+                        .from('chats')
+                        .update({ last_kg_extraction_at: new Date().toISOString() })
+                        .eq('id', chatId)
+                    }
                   }
 
                   // Record generation stats
-                  console.log(`[${requestId}] Recording generation stats...`)
                   await supabase.from('llm_generations').insert({
                     chat_id: chatId,
                     message_id: msg?.id ?? null,
@@ -242,9 +292,7 @@ export async function POST(req: NextRequest) {
           result.mergeIntoDataStream(dataStream)
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : String(error)
-          console.error(`[${requestId}] Error inside data stream execute:`, error)
           logger.error('Error inside data stream execute', { requestId, error: errorMessage })
-          // Errors in execute are handled by the framework automatically
           throw error
         }
       },
@@ -252,25 +300,18 @@ export async function POST(req: NextRequest) {
         const errorMessage = error instanceof Error ? error.message : String(error)
         const errorStack = error instanceof Error ? error.stack : undefined
         const errorName = error instanceof Error ? error.name : 'Unknown'
-        console.error(`[${requestId}] Data stream error:`, { name: errorName, message: errorMessage, stack: errorStack, rawError: error })
         logger.error('Data stream error', { requestId, errorName, errorMessage, errorStack })
-        // Return the actual error message to help with debugging
-        // Include provider info to help diagnose provider-specific issues
         return `Error (${provider}/${selectedModel}): ${errorMessage}`
       },
       headers: chatId ? { 'x-chat-id': chatId } : undefined,
     })
   } catch (error) {
-    console.error(`[${requestId}] CRITICAL PIPELINE ERROR:`, error instanceof Error ? error.message : String(error))
     logger.error('Chat request failed', {
       requestId,
       message: error instanceof Error ? error.message : String(error),
     })
     return NextResponse.json(
-      {
-        error: 'Internal Server Error',
-        requestId,
-      },
+      { error: 'Internal Server Error', requestId },
       { status: 500 }
     )
   }

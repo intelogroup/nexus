@@ -24,7 +24,7 @@ interface ChatInterfaceProps {
 export function ChatInterface({ initialChats = [] }: ChatInterfaceProps) {
   const [activeModel, setActiveModel] = useState<string>(DEFAULT_MODEL_ID);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [view, setView] = useState<"chat" | "graph">("chat");
+  const [view, setView] = useState<"chat" | "graph" | "snap">("chat");
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
 
   const handleChatSelect = (chatId: string | null) => {
