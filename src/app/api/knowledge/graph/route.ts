@@ -69,6 +69,9 @@ export async function GET(req: NextRequest) {
     // ── Level 1: return subdomain nodes for a domain ───────────────────────────
     if (domainIdParam && !subdomainIdParam) {
       const domainId = parseInt(domainIdParam);
+      if (Number.isNaN(domainId)) {
+        return NextResponse.json({ error: 'Invalid domain_id' }, { status: 400 });
+      }
 
       const { data: subdomainsRaw } = await db
         .from('knowledge_graph_nodes')
