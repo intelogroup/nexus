@@ -6,9 +6,9 @@ Focus: complete the knowledge loop — messages come in, knowledge is extracted,
 
 ## P0 — Journey Blockers (ship these first)
 
-- [ ] **Deploy edge functions** — `scan-knowledge-gaps`, `execute-research`, `compress-knowledge` are built but not deployed; the autonomous research loop cannot run without them
+- [x] **Deploy edge functions** — `scan-knowledge-gaps`, `execute-research`, `compress-knowledge` deployed to project `etqcbdrwmfacsaqegwzd` (2026-03-22)
 - [x] **Knowledge browse UI** — graph visualization exists but isn't the right entry point; add a searchable list/table of KG nodes so users can find what the system learned
-- [ ] **Research goal approval flow UI** — backend approval exists; add inbox-style UI so users can approve/reject pending research goals without going to the DB
+- [x] **Research goal approval flow UI** — inbox-style UI at `/research-inbox` with approve/dismiss, status filtering, confidence display (2026-03-22)
 - [ ] **Notification delivery** — notifications are generated but `notifications/*` routes are untested; wire up in-app notification bell as read-only first
 - [ ] **Snap page** — clarify and complete: if it's a quick-capture tool, build the minimal capture → tag → save flow; if stub, remove it
 

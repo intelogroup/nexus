@@ -10,6 +10,9 @@ vi.mock('ai', () => ({
 vi.mock('@/lib/supabase/server', () => ({
   createClient: vi.fn(),
 }))
+vi.mock('@/lib/logger', () => ({
+  logger: { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() },
+}))
 
 import { POST } from './route'
 import { createClient } from '@/lib/supabase/server'

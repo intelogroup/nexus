@@ -301,7 +301,7 @@ export async function POST(req: NextRequest) {
         const errorStack = error instanceof Error ? error.stack : undefined
         const errorName = error instanceof Error ? error.name : 'Unknown'
         logger.error('Data stream error', { requestId, errorName, errorMessage, errorStack })
-        return `Error (${provider}/${selectedModel}): ${errorMessage}`
+        return 'An error occurred while generating the response. Please try again.'
       },
       headers: chatId ? { 'x-chat-id': chatId } : undefined,
     })
