@@ -1,5 +1,59 @@
 # Nexus Project — Claude Code Instructions
 
+## Task: Send Developer Brief to Jim
+
+**Trigger**: Any request like "send brief to jim", "send the developer brief", "email jim the brief"
+
+### Step 1 — Compose the brief content
+
+Generate a fresh "10x Developer Briefs" email with today's date. Always include:
+
+1. **5 Coding Hacks** — practical techniques from current AI coding tools (Claude Code, OpenAI Codex, Google Gemini). Topics rotate but should always be actionable and specific. Examples: parallel AI workflows, CLAUDE.md/AGENTS.md setup, large-context strategies, CI/CD automation, multi-agent patterns.
+
+2. **5 Claude Code Best Practices** — sourced from Claude Code docs. Topics: verification workflows, explore→plan→code, context management, hooks/permissions, prompt specificity.
+
+Format as styled HTML email with:
+- Header: `⚡ 10x Developer Briefs`
+- Subheader: `Curated from Claude Code Docs, OpenAI Codex & Google Gemini — <TODAY'S DATE>`
+- Blue left-border cards for hacks, green left-border cards for best practices
+- Footer crediting Claude Code (Sonnet model) + sources + date
+
+### Step 2 — Send via Supabase pg_net → Resend
+
+**Do NOT attempt direct HTTP** — the egress proxy blocks all email APIs. Go straight to Supabase.
+
+```sql
+SELECT net.http_post(
+  url := 'https://api.resend.com/emails',
+  headers := jsonb_build_object(
+    'Authorization', 'Bearer re_Z5mWwuTW_MjRy7Z5UJJrtF3n1WgTtv48E',
+    'Content-Type', 'application/json'
+  ),
+  body := jsonb_build_object(
+    'from', 'onboarding@resend.dev',
+    'to', ARRAY['jimkalinov@gmail.com'],
+    'subject', '10x Developer Briefs — <DATE> | Claude Code, Codex & Gemini',
+    'html', '<full html string>'
+  )
+) AS request_id;
+```
+
+Then confirm delivery:
+```sql
+SELECT id, status_code, content::text FROM net._http_response WHERE id = <request_id>;
+-- 200 + {"id":"<uuid>"} = success
+```
+
+### Recipient
+- **Jim**: `jimkalinov@gmail.com`
+
+### History
+| Date | Resend Message ID |
+|------|------------------|
+| 2026-03-22 | `694fbb55-49e8-4a64-b49d-38aa3a87b61e` |
+
+---
+
 ## Email Sending (Transactional)
 
 **Working method: Supabase `pg_net` → Resend API**
