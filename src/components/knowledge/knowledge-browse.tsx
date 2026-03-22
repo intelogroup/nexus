@@ -5,6 +5,7 @@ import { Search, ChevronUp, ChevronDown, Loader2, BookOpen, ArrowLeft, ArrowRigh
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { KnowledgeNodeDetail } from './knowledge-node-detail';
 
 // ─── Types ───────────────────────────────────────────────────────────
 type KnowledgeNode = {
@@ -95,6 +96,7 @@ export function KnowledgeBrowse() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [detailNodeId, setDetailNodeId] = useState<string | null>(null);
 
   // Debounce search input
   useEffect(() => {
@@ -223,8 +225,8 @@ export function KnowledgeBrowse() {
         {nodes.map(node => (
           <div key={node.id}>
             <button
-              onClick={() => setExpandedId(expandedId === node.id ? null : node.id)}
-              className="w-full grid grid-cols-[1fr_120px_80px_80px_80px_100px] gap-2 px-4 py-2.5 border-b hover:bg-muted/40 transition-colors text-left"
+              onClick={() => setDetailNodeId(node.id)}
+              className={`w-full grid grid-cols-[1fr_120px_80px_80px_80px_100px] gap-2 px-4 py-2.5 border-b hover:bg-muted/40 transition-colors text-left ${detailNodeId === node.id ? 'bg-muted/50' : ''}`}
             >
               <span className="text-sm truncate">{node.label ?? '(untitled)'}</span>
               <span>
@@ -237,19 +239,6 @@ export function KnowledgeBrowse() {
               <span className="text-xs text-muted-foreground tabular-nums">{node.edge_count}</span>
               <span className="text-xs text-muted-foreground">{formatDate(node.updated_at)}</span>
             </button>
-
-            {/* Expanded detail row */}
-            {expandedId === node.id && (
-              <Card className="mx-4 my-2 p-3">
-                <p className="text-xs text-muted-foreground mb-1">Summary</p>
-                <p className="text-sm">{node.summary || 'No summary available.'}</p>
-                <div className="flex gap-4 mt-2 text-xs text-muted-foreground">
-                  <span>Source: {node.source_type ?? 'unknown'}</span>
-                  <span>Visibility: {node.visibility ?? 'private'}</span>
-                  <span>Created: {formatDate(node.created_at)}</span>
-                </div>
-              </Card>
-            )}
           </div>
         ))}
       </div>
@@ -280,6 +269,13 @@ export function KnowledgeBrowse() {
           </div>
         </div>
       )}
+
+      {/* Node detail slide-over panel */}
+      <KnowledgeNodeDetail
+        nodeId={detailNodeId}
+        onClose={() => setDetailNodeId(null)}
+        onNavigateToNode={(id) => setDetailNodeId(id)}
+      />
     </div>
   );
 }

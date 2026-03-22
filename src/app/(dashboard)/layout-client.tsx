@@ -19,10 +19,12 @@ function LayoutContent({ children, initialChats }: LayoutClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const currentView = pathname === "/graph" ? "graph" : pathname === "/snap" ? "snap" : pathname === "/knowledge" ? "knowledge" : pathname === "/research-inbox" ? "research-inbox" : "chat";
+  const currentView = pathname === "/graph" ? "graph" : pathname === "/snap" ? "snap" : pathname === "/knowledge" ? "knowledge" : pathname === "/research-inbox" ? "research-inbox" : pathname === "/reports" ? "reports" : "chat";
 
-  const handleViewChange = (view: "chat" | "graph" | "snap" | "knowledge" | "research-inbox") => {
-    if (view === "research-inbox") {
+  const handleViewChange = (view: "chat" | "graph" | "snap" | "knowledge" | "research-inbox" | "reports") => {
+    if (view === "reports") {
+      router.push("/reports");
+    } else if (view === "research-inbox") {
       router.push("/research-inbox");
     } else if (view === "knowledge") {
       router.push("/knowledge");
