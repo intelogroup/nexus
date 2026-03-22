@@ -9,8 +9,8 @@ Focus: complete the knowledge loop — messages come in, knowledge is extracted,
 - [x] **Deploy edge functions** — `scan-knowledge-gaps`, `execute-research`, `compress-knowledge` deployed to project `etqcbdrwmfacsaqegwzd` (2026-03-22)
 - [x] **Knowledge browse UI** — graph visualization exists but isn't the right entry point; add a searchable list/table of KG nodes so users can find what the system learned
 - [x] **Research goal approval flow UI** — inbox-style UI at `/research-inbox` with approve/dismiss, status filtering, confidence display (2026-03-22)
-- [ ] **Notification delivery** — notifications are generated but `notifications/*` routes are untested; wire up in-app notification bell as read-only first
-- [ ] **Snap page** — clarify and complete: if it's a quick-capture tool, build the minimal capture → tag → save flow; if stub, remove it
+- [x] **Notification delivery** — `NotificationBell` component fetches from `/api/notifications`, has realtime subscription via Supabase channels, dismiss/approve flow; mounted in topbar; API routes have auth + validation + tests (2026-03-22)
+- [x] **Snap page** — full capture flow: `/snap?chatId=X` loads messages, generates structured graph via AI streaming, outline + flow views, localStorage caching, regeneration; navigation wired from layout-client (2026-03-22)
 
 ---
 
