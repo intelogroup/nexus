@@ -21,7 +21,8 @@ Focus: complete the knowledge loop — messages come in, knowledge is extracted,
 - [x] **Research report reader** — surface completed research reports in a readable format inside the app (not just DB rows) (2026-03-22)
 - [ ] **Knowledge gap notifications** — when `scan-knowledge-gaps` finds a gap, show it prominently: "We noticed you lack knowledge about X — approve research?"
 - [ ] **Chat search** — full-text search across all chats; Supabase already has the data
-- [ ] **User profile / settings page** — currently missing entirely; minimum: display name, timezone, model preference, notification opt-ins
+- [x] **User profile / settings page** — `/settings` with API key management (add/revoke/mask) and notification preferences (email, push, research, knowledge gap toggles); API routes with tests (2026-03-22)
+- [x] **Chat export** — export conversations as Markdown or PDF; dropdown menu in chat view with download trigger; utility lib with tests (2026-03-22)
 
 ---
 

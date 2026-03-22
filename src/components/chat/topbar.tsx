@@ -1,6 +1,6 @@
 "use client";
 
-import { Menu, Brain, MessageSquare, Camera, BookOpen, Inbox, FileText } from "lucide-react";
+import { Menu, Brain, MessageSquare, Camera, BookOpen, Inbox, FileText, Settings2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ModelSwitcher } from "./model-switcher";
 import { NotificationBell } from "@/components/agent/notification-bell";
@@ -9,8 +9,8 @@ interface TopbarProps {
   activeModel: string;
   onModelChange: (model: string) => void;
   onToggleSidebar: () => void;
-  currentView: "chat" | "graph" | "snap" | "knowledge" | "research-inbox" | "reports";
-  onViewChange: (view: "chat" | "graph" | "snap" | "knowledge" | "research-inbox" | "reports") => void;
+  currentView: "chat" | "graph" | "snap" | "knowledge" | "research-inbox" | "reports" | "settings";
+  onViewChange: (view: "chat" | "graph" | "snap" | "knowledge" | "research-inbox" | "reports" | "settings") => void;
 }
 
 export function Topbar({ 
@@ -87,6 +87,16 @@ export function Topbar({
         </div>
         <div className="flex items-center gap-2 ml-auto">
           <NotificationBell />
+          <Button
+            variant={currentView === "settings" ? "secondary" : "ghost"}
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => onViewChange("settings")}
+            data-testid="settings-button"
+          >
+            <Settings2 className="h-4 w-4" />
+            <span className="sr-only">Settings</span>
+          </Button>
           <ModelSwitcher selectedModel={activeModel} onModelChange={onModelChange} />
         </div>
       </div>

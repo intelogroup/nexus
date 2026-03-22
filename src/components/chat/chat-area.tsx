@@ -4,7 +4,7 @@ import { useChat } from "ai/react";
 import { useRef, useEffect, useState, useMemo } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Send } from "lucide-react";
+import { Send, Download } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ContextVisualizer } from "./context-visualizer";
 import { createClient } from "@/lib/supabase/client";
 import { useChatContext } from "./chat-context";
+import { ChatExportMenu } from "./chat-export-menu";
 
 interface ChatAreaProps {
   activeModel?: string; // Optional prop to override context
@@ -181,6 +182,12 @@ export function ChatArea({ activeModel: modelProp, chatId, initialMessages = [],
 
   return (
     <div className="flex flex-col h-full w-full bg-background">
+      {/* Export bar — only show when there are messages and a chat */}
+      {chatId && messages.length > 0 && (
+        <div className="flex items-center justify-end px-4 sm:px-6 pt-2">
+          <ChatExportMenu messages={messages} />
+        </div>
+      )}
       <div className="flex-1 overflow-y-auto p-4 sm:p-6" ref={scrollRef}>
         <div className="flex flex-col gap-6 max-w-3xl mx-auto pb-4">
           {messages.length === 0 ? (
