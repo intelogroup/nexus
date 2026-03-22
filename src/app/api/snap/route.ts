@@ -3,6 +3,7 @@ import { anthropic } from '@ai-sdk/anthropic'
 import { z } from 'zod'
 import { NextResponse, type NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { logger } from '@/lib/logger'
 
 const SnapGraphSchema = z.object({
   type: z.enum(['brainstorm', 'summary', 'technical']),
@@ -86,6 +87,7 @@ export async function POST(req: NextRequest) {
     return result.toTextStreamResponse()
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
-    return NextResponse.json({ error: `Stream error: ${message}` }, { status: 500 })
+    logger.error('Snap stream error', { error: message })
+    return NextResponse.json({ error: 'Failed to generate snap graph' }, { status: 500 })
   }
 }

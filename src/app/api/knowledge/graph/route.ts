@@ -99,6 +99,12 @@ export async function GET(req: NextRequest) {
 
     // ── Level 2: return concept nodes under a subdomain ───────────────────────
     if (subdomainIdParam) {
+      // Validate UUID format to prevent malformed queries
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (!uuidRegex.test(subdomainIdParam)) {
+        return NextResponse.json({ error: 'Invalid subdomain_id' }, { status: 400 });
+      }
+
       const { data: nodesRaw } = await db
         .from('knowledge_graph_nodes')
         .select('id, label, summary, node_type, chat_id, message_id, domain_id')

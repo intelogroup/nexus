@@ -1,6 +1,6 @@
 "use client";
 
-import { Menu, Brain, MessageSquare, Camera, BookOpen } from "lucide-react";
+import { Menu, Brain, MessageSquare, Camera, BookOpen, Inbox } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ModelSwitcher } from "./model-switcher";
 import { NotificationBell } from "@/components/agent/notification-bell";
@@ -9,8 +9,8 @@ interface TopbarProps {
   activeModel: string;
   onModelChange: (model: string) => void;
   onToggleSidebar: () => void;
-  currentView: "chat" | "graph" | "snap" | "knowledge";
-  onViewChange: (view: "chat" | "graph" | "snap" | "knowledge") => void;
+  currentView: "chat" | "graph" | "snap" | "knowledge" | "research-inbox";
+  onViewChange: (view: "chat" | "graph" | "snap" | "knowledge" | "research-inbox") => void;
 }
 
 export function Topbar({ 
@@ -64,6 +64,15 @@ export function Topbar({
             >
               <BookOpen className="h-4 w-4" />
               <span className="hidden md:inline">Knowledge</span>
+            </Button>
+            <Button
+              variant={currentView === "research-inbox" ? "secondary" : "ghost"}
+              size="sm"
+              className="h-8 gap-2"
+              onClick={() => onViewChange("research-inbox")}
+            >
+              <Inbox className="h-4 w-4" />
+              <span className="hidden md:inline">Research</span>
             </Button>
           </div>
         </div>
