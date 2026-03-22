@@ -16,9 +16,9 @@ Focus: complete the knowledge loop — messages come in, knowledge is extracted,
 
 ## P1 — User Journey Completeness
 
-- [ ] **Knowledge node detail view** — click a node in the graph or list to see: what it is, which messages it came from, related nodes, research findings
+- [x] **Knowledge node detail view** — click a node in the graph or list to see: what it is, which messages it came from, related nodes, research findings (2026-03-22)
 - [ ] **Chat with knowledge context toggle** — let user turn knowledge augmentation on/off per chat; show which nodes influenced an answer
-- [ ] **Research report reader** — surface completed research reports in a readable format inside the app (not just DB rows)
+- [x] **Research report reader** — surface completed research reports in a readable format inside the app (not just DB rows) (2026-03-22)
 - [ ] **Knowledge gap notifications** — when `scan-knowledge-gaps` finds a gap, show it prominently: "We noticed you lack knowledge about X — approve research?"
 - [ ] **Chat search** — full-text search across all chats; Supabase already has the data
 - [ ] **User profile / settings page** — currently missing entirely; minimum: display name, timezone, model preference, notification opt-ins
