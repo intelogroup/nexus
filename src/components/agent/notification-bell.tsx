@@ -77,7 +77,8 @@ export function NotificationBell() {
     fetch("/api/notifications")
       .then((r) => r.json())
       .then((data) => {
-        if (Array.isArray(data)) setNotifications(data);
+        const items = data?.notifications ?? data;
+        if (Array.isArray(items)) setNotifications(items);
       })
       .catch((err) => {
         console.warn('[NotificationBell] Failed to fetch notifications:', err);

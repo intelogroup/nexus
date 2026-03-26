@@ -48,9 +48,8 @@ export function Sidebar({ isOpen, onClose, onChatDeleted, initialChats = [] }: S
   };
 
   useEffect(() => {
-    // Optimization: Skip fetching if we already have initialChats from the server
-    // only fetch if the sidebar is open and we don't have chats yet.
-    if (isOpen && chats.length === 0) {
+    // Always fetch fresh chats when sidebar opens to pick up newly created chats
+    if (isOpen) {
       fetchChats();
     }
   }, [isOpen]);

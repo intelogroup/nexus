@@ -10,8 +10,9 @@ export default async function SnapPage({
 
   if (!chatId) {
     return (
-      <div className="h-full w-full flex items-center justify-center">
-        <p className="text-sm text-muted-foreground">Open a chat first, then Snap it.</p>
+      <div className="h-full w-full flex flex-col items-center justify-center gap-3">
+        <p className="text-sm text-muted-foreground">No chat selected. Go to a chat first, then click Snap to visualize it.</p>
+        <a href="/" className="text-sm text-primary underline hover:text-primary/80">Back to chats</a>
       </div>
     )
   }

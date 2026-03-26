@@ -11,9 +11,9 @@ import { cn } from '@/lib/utils'
 export default function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>
+  searchParams: Promise<{ error?: string; message?: string }>
 }) {
-  const { error } = use(searchParams)
+  const { error, message } = use(searchParams)
   const [mode, setMode] = useState<'login' | 'signup'>('login')
 
   return (
@@ -34,6 +34,11 @@ export default function LoginPage({
             {error && (
               <div className="rounded-md bg-destructive/15 p-3 text-sm text-destructive">
                 {error}
+              </div>
+            )}
+            {message && (
+              <div className="rounded-md bg-muted p-3 text-sm text-muted-foreground">
+                {message}
               </div>
             )}
             
@@ -62,14 +67,7 @@ export default function LoginPage({
             </div>
             
             <div className="grid gap-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="password">Password</Label>
-                {mode === 'login' && (
-                  <Button variant="link" className="px-0 font-normal h-auto" type="button">
-                    Forgot password?
-                  </Button>
-                )}
-              </div>
+              <Label htmlFor="password">Password</Label>
               <Input id="password" name="password" type="password" required />
             </div>
 

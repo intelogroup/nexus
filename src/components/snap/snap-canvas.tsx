@@ -30,6 +30,16 @@ const SnapGraphSchema = z.object({
 type SnapCache = {
   graph: SnapGraph
   messageCount: number
+  contentHash: number
+}
+
+function hashMessages(messages: { role: string; content: string }[]): number {
+  const str = messages.map(m => m.role + ':' + m.content).join('|')
+  let hash = 0
+  for (let i = 0; i < str.length; i++) {
+    hash = ((hash << 5) - hash + str.charCodeAt(i)) | 0
+  }
+  return hash
 }
 
 function readCache(chatId: string): SnapCache | null {
@@ -41,11 +51,11 @@ function readCache(chatId: string): SnapCache | null {
   }
 }
 
-function writeCache(chatId: string, graph: SnapGraph, messageCount: number) {
+function writeCache(chatId: string, graph: SnapGraph, messageCount: number, contentHash: number) {
   try {
     localStorage.setItem(
       `snap_cache_${chatId}`,
-      JSON.stringify({ graph, messageCount } satisfies SnapCache),
+      JSON.stringify({ graph, messageCount, contentHash } satisfies SnapCache),
     )
   } catch {
     // localStorage unavailable (private mode, etc.) — silently skip
@@ -77,7 +87,7 @@ export function SnapCanvas({ messages, chatId }: SnapCanvasProps) {
   // On mount (or after Regenerate): check cache before calling API
   useEffect(() => {
     const cache = readCache(chatId)
-    if (cache && cache.messageCount === messages.length) {
+    if (cache && cache.messageCount === messages.length && cache.contentHash === hashMessages(messages)) {
       setCachedGraph(cache.graph)
       return // skip API call
     }
@@ -96,7 +106,7 @@ export function SnapCanvas({ messages, chatId }: SnapCanvasProps) {
       object?.title &&
       object?.nodes?.length
     ) {
-      writeCache(chatId, object as SnapGraph, messages.length)
+      writeCache(chatId, object as SnapGraph, messages.length, hashMessages(messages))
     }
     wasLoadingRef.current = isLoading
   }, [isLoading, object, chatId, messages.length])
@@ -172,7 +182,7 @@ export function SnapCanvas({ messages, chatId }: SnapCanvasProps) {
           variant="outline"
           size="sm"
           onClick={handleRegenerate}
-          disabled={cachedGraph !== null}
+          disabled={isLoading || cachedGraph !== null}
         >
           <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
           Regenerate

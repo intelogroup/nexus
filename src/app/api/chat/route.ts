@@ -158,15 +158,21 @@ export async function POST(req: NextRequest) {
     }
 
     // ── Hybrid knowledge retrieval ──────────────────────────────────────────
-    // Runs in parallel with model instantiation; failure is non-fatal.
-    const [knowledgeContext] = await Promise.all([
-      buildKnowledgeContext(
+    // Failure is non-fatal — chat should work even if knowledge retrieval fails.
+    let knowledgeContext: string | null = null
+    try {
+      knowledgeContext = await buildKnowledgeContext(
         supabase,
         user.id,
         lastUserMessage?.content ?? '',
         chatId
-      ),
-    ])
+      )
+    } catch (knowledgeError) {
+      logger.error('Knowledge context retrieval failed, continuing without it', {
+        requestId,
+        error: knowledgeError instanceof Error ? knowledgeError.message : String(knowledgeError),
+      })
+    }
 
     // Inject knowledge context as the first system message if available.
     // This gives the model awareness of what the user already knows across

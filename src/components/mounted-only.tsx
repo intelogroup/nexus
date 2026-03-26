@@ -9,9 +9,9 @@ export function MountedOnly({ children }: { children: ReactNode }) {
     setMounted(true);
   }, []);
 
-  if (!mounted) {
-    return null;
-  }
-
-  return <>{children}</>;
+  return (
+    <div style={{ visibility: mounted ? 'visible' : 'hidden' }}>
+      {children}
+    </div>
+  );
 }

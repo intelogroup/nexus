@@ -4,7 +4,7 @@ import { processMessageKnowledge } from '@/lib/knowledge';
 import { logger } from '@/lib/logger';
 
 export async function POST(req: Request) {
-  const requestId = `backfill_${Date.now()}`;
+  const requestId = crypto.randomUUID();
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();

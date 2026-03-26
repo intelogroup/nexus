@@ -3,9 +3,9 @@
 import { useState } from "react";
 import dynamic from "next/dynamic";
 import { Sidebar } from "./sidebar";
-import { DEFAULT_MODEL_ID } from "@/lib/models";
 import { Topbar } from "./topbar";
 import { ChatArea } from "./chat-area";
+import { useChatContext } from "./chat-context";
 
 const KnowledgeGraph = dynamic(() => import("./knowledge-graph").then(mod => mod.KnowledgeGraph), {
   loading: () => (
@@ -22,7 +22,7 @@ interface ChatInterfaceProps {
 }
 
 export function ChatInterface({ initialChats = [] }: ChatInterfaceProps) {
-  const [activeModel, setActiveModel] = useState<string>(DEFAULT_MODEL_ID);
+  const { activeModel, setActiveModel } = useChatContext();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [view, setView] = useState<"chat" | "graph" | "snap" | "knowledge" | "research-inbox">("chat");
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
