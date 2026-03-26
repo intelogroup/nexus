@@ -20,9 +20,9 @@ export default function LoginPage({
     <div className="flex h-screen w-full items-center justify-center bg-background px-4">
       <Card className="w-full max-w-md transition-all duration-300">
         <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold">
+          <h1 className="text-2xl font-bold">
             {mode === 'login' ? 'Welcome back' : 'Create an account'}
-          </CardTitle>
+          </h1>
           <CardDescription>
             {mode === 'login' 
               ? 'Enter your email and password to access your account' 

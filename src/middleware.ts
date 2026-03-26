@@ -29,8 +29,13 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // Refresh the session by calling getUser
-  await supabase.auth.getUser()
+  // Refresh the session — silently ignore connection failures
+  // so the app can still render the login page
+  try {
+    await supabase.auth.getUser()
+  } catch {
+    // Supabase unreachable — allow request to continue
+  }
 
   return supabaseResponse
 }
