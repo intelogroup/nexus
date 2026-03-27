@@ -103,7 +103,9 @@ export default function SettingsPage() {
     try {
       const res = await fetch("/api/settings/preferences")
       if (res.ok) {
-        setPrefs(await res.json())
+        const data = await res.json()
+        setPrefs(data)
+        lastSavedPrefs.current = data
       }
     } catch {
       // silent
@@ -174,6 +176,7 @@ export default function SettingsPage() {
   const prefSaveQueue = useRef<Record<string, boolean>>({})
   const flushTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const prefSaving = useRef(false)
+  const lastSavedPrefs = useRef<NotificationPreferences | null>(null)
 
   const flushPrefQueue = useCallback(async () => {
     if (prefSaving.current) return
@@ -190,25 +193,22 @@ export default function SettingsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(pending),
       })
-      if (!res.ok) {
-        // Revert all pending changes on error
-        setPrefs((prev) => {
-          const reverted = { ...prev }
-          for (const [k, v] of Object.entries(pending)) {
-            (reverted as Record<string, boolean>)[k] = !v
-          }
-          return reverted
-        })
+      if (res.ok) {
+        // Server returns the merged preferences — use as rollback snapshot
+        const saved = await res.json()
+        lastSavedPrefs.current = saved
+        setPrefs(saved)
+      } else {
+        // Revert to last known server state
+        if (lastSavedPrefs.current) {
+          setPrefs(lastSavedPrefs.current)
+        }
       }
     } catch {
-      // Revert on network error
-      setPrefs((prev) => {
-        const reverted = { ...prev }
-        for (const [k, v] of Object.entries(pending)) {
-          (reverted as Record<string, boolean>)[k] = !v
-        }
-        return reverted
-      })
+      // Revert to last known server state on network error
+      if (lastSavedPrefs.current) {
+        setPrefs(lastSavedPrefs.current)
+      }
     } finally {
       prefSaving.current = false
       // If more changes queued while we were saving, flush again
