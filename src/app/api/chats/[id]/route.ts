@@ -8,8 +8,14 @@ export async function DELETE(
 ) {
   const requestId = globalThis.crypto?.randomUUID?.() ?? `req_${Date.now()}`
   const { id: chatId } = await params
-  
+
   try {
+    // Validate UUID format
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+    if (!uuidRegex.test(chatId)) {
+      return NextResponse.json({ error: 'Invalid chat ID' }, { status: 400 })
+    }
+
     const supabase = await createClient()
 
     const { data: { user } } = await supabase.auth.getUser()

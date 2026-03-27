@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, use } from 'react'
+import { useState, use, useTransition } from 'react'
 import { login, signup } from './actions'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -15,6 +15,7 @@ export default function LoginPage({
 }) {
   const { error, message } = use(searchParams)
   const [mode, setMode] = useState<'login' | 'signup'>('login')
+  const [isPending, startTransition] = useTransition()
 
   return (
     <div className="flex h-screen w-full items-center justify-center bg-background px-4">
@@ -74,7 +75,9 @@ export default function LoginPage({
             <div className="flex flex-col gap-2 mt-2">
               {mode === 'login' ? (
                 <>
-                  <Button type="submit" formAction={login}>Log in</Button>
+                  <Button type="submit" formAction={(formData) => startTransition(() => login(formData))} disabled={isPending}>
+                    {isPending ? 'Logging in…' : 'Log in'}
+                  </Button>
                   <Button 
                     type="button" 
                     variant="ghost" 
@@ -86,7 +89,9 @@ export default function LoginPage({
                 </>
               ) : (
                 <>
-                  <Button type="submit" formAction={signup}>Sign up</Button>
+                  <Button type="submit" formAction={(formData) => startTransition(() => signup(formData))} disabled={isPending}>
+                    {isPending ? 'Signing up…' : 'Sign up'}
+                  </Button>
                   <Button 
                     type="button" 
                     variant="ghost" 

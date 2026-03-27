@@ -7,8 +7,8 @@ import { logger } from '@/lib/logger';
 export async function POST(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
-    const limit  = Math.min(parseInt(searchParams.get('limit')  ?? '20') || 20, 100);
-    const offset = parseInt(searchParams.get('offset') ?? '0') || 0;
+    const limit  = Math.min(Math.max(parseInt(searchParams.get('limit')  ?? '20') || 20, 1), 100);
+    const offset = Math.max(parseInt(searchParams.get('offset') ?? '0') || 0, 0);
 
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();

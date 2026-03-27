@@ -67,6 +67,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid request: messages must be a non-empty array' }, { status: 400 })
   }
 
+  // Validate message structure
+  for (const m of messages) {
+    if (typeof m !== 'object' || m === null || typeof m.role !== 'string' || typeof m.content !== 'string') {
+      return NextResponse.json({ error: 'Each message must have a string "role" and "content"' }, { status: 400 })
+    }
+  }
+
   // Guard against excessively large payloads
   const totalSize = JSON.stringify(messages).length
   if (totalSize > 100000) {

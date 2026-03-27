@@ -8,7 +8,7 @@ export async function login(formData: FormData) {
   const email = formData.get('email')
   const password = formData.get('password')
 
-  if (typeof email !== 'string' || email.trim().length === 0 || email.length > 255 || !email.includes('@')) {
+  if (typeof email !== 'string' || email.trim().length === 0 || email.length > 255 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
     return redirect('/login?error=' + encodeURIComponent('Please enter a valid email address.'))
   }
 
@@ -36,7 +36,7 @@ export async function signup(formData: FormData) {
   const password = formData.get('password')
   const username = formData.get('username')
 
-  if (typeof email !== 'string' || email.trim().length === 0 || email.length > 255 || !email.includes('@')) {
+  if (typeof email !== 'string' || email.trim().length === 0 || email.length > 255 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
     return redirect('/login?error=' + encodeURIComponent('Please enter a valid email address.'))
   }
 
