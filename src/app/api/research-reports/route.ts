@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
     // Fetch reports with count
     let query = supabase
       .from('research_reports')
-      .select('id, goal_id, summary, key_claims, confidence, model_used, created_at, linked_node_ids', { count: 'exact' })
+      .select('id, goal_id, summary, key_claims, confidence, model_used, created_at, linked_node_ids, research_goals!goal_id(title)', { count: 'exact' })
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
       .range(from, to)
@@ -45,23 +45,9 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    // Fetch goal titles for each report
-    const goalIds = [...new Set((reports ?? []).map(r => r.goal_id).filter(Boolean))]
-    let goalMap: Record<string, string> = {}
-    if (goalIds.length > 0) {
-      const { data: goals } = await supabase
-        .from('research_goals')
-        .select('id, title')
-        .in('id', goalIds)
-
-      for (const g of goals ?? []) {
-        goalMap[g.id] = g.title
-      }
-    }
-
-    const enriched = (reports ?? []).map(r => ({
+    const enriched = (reports ?? []).map(({ research_goals, ...r }) => ({
       ...r,
-      goal_title: goalMap[r.goal_id] ?? 'Untitled research',
+      goal_title: (research_goals as unknown as { title: string } | null)?.title ?? 'Untitled research',
     }))
 
     logger.info('Research reports listed', { requestId, count, page })

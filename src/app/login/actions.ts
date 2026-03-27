@@ -5,15 +5,23 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 
 export async function login(formData: FormData) {
-  const supabase = await createClient()
+  const email = formData.get('email')
+  const password = formData.get('password')
 
-  // type-casting here for simplicity
-  const data = {
-    email: formData.get('email') as string,
-    password: formData.get('password') as string,
+  if (typeof email !== 'string' || email.trim().length === 0 || email.length > 255 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+    return redirect('/login?error=' + encodeURIComponent('Please enter a valid email address.'))
   }
 
-  const { error } = await supabase.auth.signInWithPassword(data)
+  if (typeof password !== 'string' || password.length < 8 || password.length > 256) {
+    return redirect('/login?error=' + encodeURIComponent('Password must be between 8 and 256 characters.'))
+  }
+
+  const supabase = await createClient()
+
+  const { error } = await supabase.auth.signInWithPassword({
+    email: email.trim(),
+    password,
+  })
 
   if (error) {
     return redirect('/login?error=' + encodeURIComponent(error.message))
@@ -24,14 +32,26 @@ export async function login(formData: FormData) {
 }
 
 export async function signup(formData: FormData) {
+  const email = formData.get('email')
+  const password = formData.get('password')
+  const username = formData.get('username')
+
+  if (typeof email !== 'string' || email.trim().length === 0 || email.length > 255 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+    return redirect('/login?error=' + encodeURIComponent('Please enter a valid email address.'))
+  }
+
+  if (typeof password !== 'string' || password.length < 8 || password.length > 256) {
+    return redirect('/login?error=' + encodeURIComponent('Password must be between 8 and 256 characters.'))
+  }
+
+  if (typeof username !== 'string' || username.length < 2 || username.length > 50 || !/^[a-zA-Z0-9_]+$/.test(username)) {
+    return redirect('/login?error=' + encodeURIComponent('Username must be 2-50 characters and contain only letters, numbers, and underscores.'))
+  }
+
   const supabase = await createClient()
 
-  const email = formData.get('email') as string
-  const password = formData.get('password') as string
-  const username = formData.get('username') as string
-
   const { data: authData, error } = await supabase.auth.signUp({
-    email,
+    email: email.trim(),
     password,
     options: {
       data: {
@@ -41,7 +61,6 @@ export async function signup(formData: FormData) {
   })
 
   if (error) {
-    console.error('Signup error:', error.message)
     return redirect('/login?error=' + encodeURIComponent(error.message))
   }
 
@@ -53,7 +72,7 @@ export async function signup(formData: FormData) {
     return redirect('/')
   }
 
-  return redirect('/login?error=' + encodeURIComponent('Signup successful. Please log in.'))
+  return redirect('/login?message=' + encodeURIComponent('Signup successful. Please check your email to confirm your account.'))
 }
 
 export async function logout() {

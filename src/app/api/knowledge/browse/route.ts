@@ -1,6 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/logger';
+import { z } from 'zod';
+
+const browseQuerySchema = z.object({
+  q: z.string().max(200).default(''),
+  node_type: z.string().max(50).default(''),
+  sort: z.string().default('updated_at'),
+  order: z.enum(['asc', 'desc']).default('desc'),
+  page: z.coerce.number().int().min(1).default(1),
+  per_page: z.coerce.number().int().min(1).max(100).default(50),
+});
 
 /**
  * GET /api/knowledge/browse
@@ -15,7 +25,7 @@ import { logger } from '@/lib/logger';
  *   per_page   - items per page (default: 50, max: 100)
  */
 export async function GET(req: NextRequest) {
-  const requestId = `kb_browse_${Date.now()}`;
+  const requestId = crypto.randomUUID();
 
   try {
     const supabase = await createClient();
@@ -26,12 +36,17 @@ export async function GET(req: NextRequest) {
     }
 
     const { searchParams } = new URL(req.url);
-    const q = searchParams.get('q')?.trim() || '';
-    const nodeTypeFilter = searchParams.get('node_type') || '';
-    const sortCol = searchParams.get('sort') || 'updated_at';
-    const order = searchParams.get('order') === 'asc' ? true : false; // ascending?
-    const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10));
-    const perPage = Math.min(100, Math.max(1, parseInt(searchParams.get('per_page') || '50', 10)));
+    const parsed = browseQuerySchema.safeParse(Object.fromEntries(searchParams));
+    if (!parsed.success) {
+      return NextResponse.json({ error: 'Invalid query parameters', details: parsed.error.flatten() }, { status: 400 });
+    }
+
+    const q = parsed.data.q.trim();
+    const nodeTypeFilter = parsed.data.node_type;
+    const sortCol = parsed.data.sort;
+    const order = parsed.data.order === 'asc' ? true : false; // ascending?
+    const page = parsed.data.page;
+    const perPage = parsed.data.per_page;
 
     // Validate sort column
     const allowedSorts = ['label', 'updated_at', 'importance_score', 'mention_count', 'edge_count', 'created_at'];
@@ -43,9 +58,10 @@ export async function GET(req: NextRequest) {
       .select('id, label, summary, node_type, importance_score, mention_count, edge_count, created_at, updated_at, chat_id, visibility, source_type', { count: 'exact' })
       .eq('user_id', user.id);
 
-    // Text search: ilike on label and summary
+    // Text search: ilike on label and summary (escape ILIKE metacharacters)
     if (q) {
-      query = query.or(`label.ilike.%${q}%,summary.ilike.%${q}%,node_type.ilike.%${q}%`);
+      const escapedQ = q.replace(/[%_\\]/g, '\\$&');
+      query = query.or(`label.ilike.%${escapedQ}%,summary.ilike.%${escapedQ}%,node_type.ilike.%${escapedQ}%`);
     }
 
     // Node type filter

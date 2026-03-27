@@ -35,6 +35,17 @@ export function ChatArea({ activeModel: modelProp, chatId, initialMessages = [],
   // Track pending chat ID for navigation after stream completes
   const pendingChatIdRef = useRef<string | null>(null);
 
+  // Guard against concurrent navigation attempts
+  const isNavigatingRef = useRef(false);
+
+  // Clear pending state on unmount
+  useEffect(() => {
+    return () => {
+      pendingChatIdRef.current = null;
+      isNavigatingRef.current = false;
+    };
+  }, []);
+
   const { messages, input, handleInputChange, handleSubmit, isLoading, setMessages } = useChat({
     api: "/api/chat",
     initialMessages,
@@ -57,7 +68,8 @@ export function ChatArea({ activeModel: modelProp, chatId, initialMessages = [],
     },
     onFinish: () => {
       // Navigate to the new chat AFTER the stream completes
-      if (pendingChatIdRef.current && pendingChatIdRef.current !== chatId) {
+      if (pendingChatIdRef.current && pendingChatIdRef.current !== chatId && !isNavigatingRef.current) {
+        isNavigatingRef.current = true;
         router.push(`/chats/${pendingChatIdRef.current}`);
         pendingChatIdRef.current = null;
       }
@@ -89,7 +101,7 @@ export function ChatArea({ activeModel: modelProp, chatId, initialMessages = [],
     }
   }, [initialMessages, chatId, setMessages]);
 
-  // Load existing messages when chatId changes (as fallback or if not pre-fetched)
+  // Fetch messages when chatId changes and no initialMessages were provided
   useEffect(() => {
     if (chatId) {
       // Skip fetch for test-chat-id
@@ -113,8 +125,14 @@ export function ChatArea({ activeModel: modelProp, chatId, initialMessages = [],
         };
         fetchMessages();
       }
+    }
+  }, [chatId, initialMessages, setMessages]);
 
-      // Subscribe to real-time updates for this chat
+  // Subscribe to real-time updates for the active chat
+  useEffect(() => {
+    if (chatId) {
+      if (chatId === 'test-chat-id') return;
+
       // Only create a new subscription if we don't already have one for this chat
       if (subscriptionRef.current?.topic !== `realtime:chat:${chatId}`) {
         // Clean up any existing subscription first
@@ -170,7 +188,7 @@ export function ChatArea({ activeModel: modelProp, chatId, initialMessages = [],
         }
       };
     }
-  }, [chatId, setMessages, supabase, initialMessages]);
+  }, [chatId, setMessages, supabase]);
 
   const scrollRef = useRef<HTMLDivElement>(null);
 

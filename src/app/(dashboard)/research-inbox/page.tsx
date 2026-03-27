@@ -70,6 +70,7 @@ function GoalCard({
         body: JSON.stringify({
           when,
           instructions: instructions.trim() || undefined,
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         }),
       });
       if (!res.ok) {
@@ -280,10 +281,12 @@ export default function ResearchInboxPage() {
   const [goals, setGoals] = useState<ResearchGoal[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [filter, setFilter] = useState<StatusFilter>("proposed");
 
   const fetchGoals = useCallback(async () => {
     setLoading(true);
+    setFetchError(null);
     try {
       const status =
         filter === "all"
@@ -296,9 +299,12 @@ export default function ResearchInboxPage() {
         const data = await res.json();
         setGoals(data.goals ?? []);
         setTotal(data.total ?? 0);
+      } else {
+        setFetchError(`Failed to load goals (${res.status})`);
       }
     } catch (err) {
       console.warn("[ResearchInbox] Failed to fetch goals:", err);
+      setFetchError("Network error — could not load research goals.");
     } finally {
       setLoading(false);
     }
@@ -376,6 +382,14 @@ export default function ResearchInboxPage() {
         {loading ? (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : fetchError ? (
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <AlertTriangle className="h-12 w-12 text-destructive/40 mb-3" />
+            <p className="text-sm text-destructive">{fetchError}</p>
+            <Button variant="outline" size="sm" className="mt-4" onClick={fetchGoals}>
+              Try again
+            </Button>
           </div>
         ) : goals.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">

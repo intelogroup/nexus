@@ -196,11 +196,14 @@ export function KnowledgeGraph() {
           // Collapse if already expanded
           if (expandedRef.current.has(data.id)) {
             const toRemove: string[] = [];
-            const queue = [...(childrenMapRef.current.get(data.id) ?? [])];
+            const MAX_COLLAPSE_DEPTH = 10;
+            const queue: Array<{ id: string; depth: number }> = (childrenMapRef.current.get(data.id) ?? []).map(id => ({ id, depth: 1 }));
             while (queue.length) {
-              const id = queue.shift()!;
+              const { id, depth } = queue.shift()!;
               toRemove.push(id);
-              queue.push(...(childrenMapRef.current.get(id) ?? []));
+              if (depth < MAX_COLLAPSE_DEPTH) {
+                queue.push(...(childrenMapRef.current.get(id) ?? []).map(cid => ({ id: cid, depth: depth + 1 })));
+              }
               childrenMapRef.current.delete(id);
               expandedRef.current.delete(id);
             }

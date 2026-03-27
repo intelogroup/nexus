@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { Key, Bell, Plus, Trash2, Eye, EyeOff, Loader2, Settings2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -103,7 +103,9 @@ export default function SettingsPage() {
     try {
       const res = await fetch("/api/settings/preferences")
       if (res.ok) {
-        setPrefs(await res.json())
+        const data = await res.json()
+        setPrefs(data)
+        lastSavedPrefs.current = data
       }
     } catch {
       // silent
@@ -170,23 +172,64 @@ export default function SettingsPage() {
     }
   }
 
-  // Update a notification preference
-  const handleTogglePref = async (key: keyof NotificationPreferences, value: boolean) => {
-    setPrefs((prev) => ({ ...prev, [key]: value }))
-    setPrefsSaving(true)
+  // Queue-based preference updates to prevent race conditions
+  const prefSaveQueue = useRef<Record<string, boolean>>({})
+  const flushTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const prefSaving = useRef(false)
+  const lastSavedPrefs = useRef<NotificationPreferences | null>(null)
+
+  const flushPrefQueue = useCallback(async () => {
+    if (prefSaving.current) return
+    const pending = { ...prefSaveQueue.current }
+    if (Object.keys(pending).length === 0) {
+      setPrefsSaving(false)
+      return
+    }
+    prefSaveQueue.current = {}
+    prefSaving.current = true
     try {
-      await fetch("/api/settings/preferences", {
+      const res = await fetch("/api/settings/preferences", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ [key]: value }),
+        body: JSON.stringify(pending),
       })
+      if (res.ok) {
+        // Server returns the merged preferences — use as rollback snapshot
+        const saved = await res.json()
+        lastSavedPrefs.current = saved
+        setPrefs(saved)
+      } else {
+        // Revert to last known server state
+        if (lastSavedPrefs.current) {
+          setPrefs(lastSavedPrefs.current)
+        }
+      }
     } catch {
-      // Revert on error
-      setPrefs((prev) => ({ ...prev, [key]: !value }))
+      // Revert to last known server state on network error
+      if (lastSavedPrefs.current) {
+        setPrefs(lastSavedPrefs.current)
+      }
     } finally {
-      setPrefsSaving(false)
+      prefSaving.current = false
+      // If more changes queued while we were saving, flush again
+      if (Object.keys(prefSaveQueue.current).length > 0) {
+        flushPrefQueue()
+      } else {
+        setPrefsSaving(false)
+      }
     }
-  }
+  }, [])
+
+  const handleTogglePref = useCallback((key: keyof NotificationPreferences, value: boolean) => {
+    setPrefs((prev) => ({ ...prev, [key]: value }))
+    setPrefsSaving(true)
+    prefSaveQueue.current[key] = value
+    // Debounce: clear previous timer and wait briefly for more toggles
+    if (flushTimeoutRef.current) {
+      clearTimeout(flushTimeoutRef.current)
+    }
+    flushTimeoutRef.current = setTimeout(() => flushPrefQueue(), 300)
+  }, [flushPrefQueue])
 
   return (
     <div className="h-full overflow-y-auto">

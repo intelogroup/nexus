@@ -43,8 +43,15 @@ export async function POST(req: NextRequest) {
   logger.info('Backend Pipeline: Incoming chat request', { requestId })
 
   try {
-    const { messages, model, chatId: incomingChatId } = await req.json()
-    logger.info('Request body parsed', { requestId, model, chatId: incomingChatId, messageCount: messages?.length })
+    let body: Record<string, unknown>
+    try {
+      body = await req.json()
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
+    }
+
+    const { messages, model, chatId: incomingChatId } = body as { messages?: unknown; model?: string; chatId?: string }
+    logger.info('Request body parsed', { requestId, model, chatId: incomingChatId, messageCount: Array.isArray(messages) ? messages.length : 0 })
 
     // Validate request payload
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
@@ -158,15 +165,21 @@ export async function POST(req: NextRequest) {
     }
 
     // ── Hybrid knowledge retrieval ──────────────────────────────────────────
-    // Runs in parallel with model instantiation; failure is non-fatal.
-    const [knowledgeContext] = await Promise.all([
-      buildKnowledgeContext(
+    // Failure is non-fatal — chat should work even if knowledge retrieval fails.
+    let knowledgeContext: string | null = null
+    try {
+      knowledgeContext = await buildKnowledgeContext(
         supabase,
         user.id,
         lastUserMessage?.content ?? '',
         chatId
-      ),
-    ])
+      )
+    } catch (knowledgeError) {
+      logger.error('Knowledge context retrieval failed, continuing without it', {
+        requestId,
+        error: knowledgeError instanceof Error ? knowledgeError.message : String(knowledgeError),
+      })
+    }
 
     // Inject knowledge context as the first system message if available.
     // This gives the model awareness of what the user already knows across

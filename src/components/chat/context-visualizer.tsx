@@ -32,7 +32,8 @@ export function ContextVisualizer({ messages, activeModel }: ContextVisualizerPr
       <div className="flex justify-between items-center">
         <span>Context Usage</span>
         <span>
-          {formatTokens(tokenCount)} / {formatTokens(limit)}
+          {formatTokens(tokenCount)} / {formatTokens(limit)}{" "}
+          <span className="text-muted-foreground/70">(excluding system context)</span>
         </span>
       </div>
       <Progress value={percentage} className="h-1.5" />

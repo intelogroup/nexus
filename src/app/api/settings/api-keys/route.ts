@@ -41,14 +41,21 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'API key must be at least 8 characters' }, { status: 400 })
   }
 
-  const masked = body.key.slice(0, 4) + '…' + body.key.slice(-4)
+  const masked = '****' + body.key.slice(-4)
+
+  // Hash the key with SHA-256 before storing
+  const encoder = new TextEncoder()
+  const keyData = encoder.encode(body.key)
+  const hashBuffer = await crypto.subtle.digest('SHA-256', keyData)
+  const hashArray = Array.from(new Uint8Array(hashBuffer))
+  const keyHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
 
   const { data, error } = await supabase
     .from('api_keys')
     .insert({
       user_id: user.id,
       label: body.label.trim(),
-      key_hash: body.key, // In production, hash this. For now, store as-is.
+      key_hash: keyHash,
       masked_key: masked,
     })
     .select('id, label, masked_key, created_at')

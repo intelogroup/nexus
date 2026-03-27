@@ -48,7 +48,7 @@ export async function classifyToOntology(
 
     // 2. LLM classification
     const { object } = await generateObject({
-      model: openai('gpt-4.1-mini'),
+      model: openai(process.env.CLASSIFICATION_MODEL || 'gpt-4.1-mini'),
       system: `You are a knowledge taxonomy classifier.
 Classify the given concept into exactly one domain and one subdomain from the reference lists.
 If no subdomain matches closely, invent a short subdomain name (2-4 words) that fits within the chosen domain.

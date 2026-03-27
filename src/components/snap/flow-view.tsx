@@ -25,16 +25,22 @@ export function buildConnectedLabels(
   const nodeMap = Object.fromEntries(nodes.map(n => [n.id, n]))
   const result: Record<string, string[]> = {}
 
+  const sets: Record<string, Set<string>> = {}
+
   edges.forEach(e => {
     const targetLabel = nodeMap[e.target]?.label
     const sourceLabel = nodeMap[e.source]?.label
     if (targetLabel) {
-      result[e.source] = [...(result[e.source] ?? []), targetLabel]
+      sets[e.source] = (sets[e.source] ?? new Set()).add(targetLabel)
     }
     if (sourceLabel) {
-      result[e.target] = [...(result[e.target] ?? []), sourceLabel]
+      sets[e.target] = (sets[e.target] ?? new Set()).add(sourceLabel)
     }
   })
+
+  for (const key of Object.keys(sets)) {
+    result[key] = Array.from(sets[key])
+  }
 
   return result
 }

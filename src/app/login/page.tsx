@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, use } from 'react'
+import { useState, use, useTransition } from 'react'
 import { login, signup } from './actions'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -11,18 +11,19 @@ import { cn } from '@/lib/utils'
 export default function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>
+  searchParams: Promise<{ error?: string; message?: string }>
 }) {
-  const { error } = use(searchParams)
+  const { error, message } = use(searchParams)
   const [mode, setMode] = useState<'login' | 'signup'>('login')
+  const [isPending, startTransition] = useTransition()
 
   return (
     <div className="flex h-screen w-full items-center justify-center bg-background px-4">
       <Card className="w-full max-w-md transition-all duration-300">
         <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold">
+          <h1 className="text-2xl font-bold">
             {mode === 'login' ? 'Welcome back' : 'Create an account'}
-          </CardTitle>
+          </h1>
           <CardDescription>
             {mode === 'login' 
               ? 'Enter your email and password to access your account' 
@@ -34,6 +35,11 @@ export default function LoginPage({
             {error && (
               <div className="rounded-md bg-destructive/15 p-3 text-sm text-destructive">
                 {error}
+              </div>
+            )}
+            {message && (
+              <div className="rounded-md bg-muted p-3 text-sm text-muted-foreground">
+                {message}
               </div>
             )}
             
@@ -62,21 +68,16 @@ export default function LoginPage({
             </div>
             
             <div className="grid gap-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="password">Password</Label>
-                {mode === 'login' && (
-                  <Button variant="link" className="px-0 font-normal h-auto" type="button">
-                    Forgot password?
-                  </Button>
-                )}
-              </div>
+              <Label htmlFor="password">Password</Label>
               <Input id="password" name="password" type="password" required />
             </div>
 
             <div className="flex flex-col gap-2 mt-2">
               {mode === 'login' ? (
                 <>
-                  <Button type="submit" formAction={login}>Log in</Button>
+                  <Button type="submit" formAction={(formData) => startTransition(() => login(formData))} disabled={isPending}>
+                    {isPending ? 'Logging in…' : 'Log in'}
+                  </Button>
                   <Button 
                     type="button" 
                     variant="ghost" 
@@ -88,7 +89,9 @@ export default function LoginPage({
                 </>
               ) : (
                 <>
-                  <Button type="submit" formAction={signup}>Sign up</Button>
+                  <Button type="submit" formAction={(formData) => startTransition(() => signup(formData))} disabled={isPending}>
+                    {isPending ? 'Signing up…' : 'Sign up'}
+                  </Button>
                   <Button 
                     type="button" 
                     variant="ghost" 

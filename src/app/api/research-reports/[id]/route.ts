@@ -7,12 +7,18 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const requestId = globalThis.crypto?.randomUUID?.() ?? `req_${Date.now()}`
+  const { id: reportId } = await params
+
+  // Validate UUID format before hitting DB
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+  if (!uuidRegex.test(reportId)) {
+    return NextResponse.json({ error: 'Invalid report ID' }, { status: 400 })
+  }
+
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
-    const { id: reportId } = await params
 
     // Fetch report — RLS ensures it belongs to this user
     const { data: report, error } = await supabase

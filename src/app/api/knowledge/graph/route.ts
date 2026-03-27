@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/logger';
+import { z } from 'zod';
+
+const graphQuerySchema = z.object({
+  domain_id: z.coerce.number().int().positive().optional(),
+  subdomain_id: z.string().uuid().optional(),
+});
 
 type DomainRow = { id: number; name: string; slug: string; color: string | null; icon: string | null };
 type NodeCountRow = { domain_id: number | null };
@@ -16,16 +22,24 @@ type ConceptRow = {
 };
 
 export async function GET(req: NextRequest) {
-  const requestId = `kg_fetch_${Date.now()}`;
+  const requestId = crypto.randomUUID();
   const { searchParams } = new URL(req.url);
-  const domainIdParam    = searchParams.get('domain_id');
-  const subdomainIdParam = searchParams.get('subdomain_id');
+
+  const parsed = graphQuerySchema.safeParse(Object.fromEntries(searchParams));
+  if (!parsed.success) {
+    return NextResponse.json({ error: 'Invalid query parameters', details: parsed.error.flatten() }, { status: 400 });
+  }
+
+  const domainIdParam = parsed.data.domain_id ?? null;
+  const subdomainIdParam = parsed.data.subdomain_id ?? null;
 
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
+    // The Supabase client's generic type doesn't include all custom tables (e.g. 'domains'),
+    // so we cast to a loosely-typed client for tables not in the generated schema.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const db = supabase as any;
 
@@ -68,16 +82,11 @@ export async function GET(req: NextRequest) {
 
     // ── Level 1: return subdomain nodes for a domain ───────────────────────────
     if (domainIdParam && !subdomainIdParam) {
-      const domainId = parseInt(domainIdParam);
-      if (Number.isNaN(domainId)) {
-        return NextResponse.json({ error: 'Invalid domain_id' }, { status: 400 });
-      }
-
       const { data: subdomainsRaw } = await db
         .from('knowledge_graph_nodes')
         .select('id, label, summary, domain_id')
         .eq('user_id', user.id)
-        .eq('domain_id', domainId)
+        .eq('domain_id', domainIdParam)
         .eq('node_type', 'subdomain')
         .eq('level', 1)
         .order('label');
@@ -94,16 +103,12 @@ export async function GET(req: NextRequest) {
         }
       }));
 
-      return NextResponse.json({ elements: cyNodes, level: 1, domainId });
+      return NextResponse.json({ elements: cyNodes, level: 1, domainId: domainIdParam });
     }
 
     // ── Level 2: return concept nodes under a subdomain ───────────────────────
     if (subdomainIdParam) {
-      // Validate UUID format to prevent malformed queries
-      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-      if (!uuidRegex.test(subdomainIdParam)) {
-        return NextResponse.json({ error: 'Invalid subdomain_id' }, { status: 400 });
-      }
+      // UUID format is already validated by the zod schema above
 
       const { data: nodesRaw } = await db
         .from('knowledge_graph_nodes')

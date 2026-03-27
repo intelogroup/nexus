@@ -61,7 +61,7 @@ describe('GET /api/notifications', () => {
     const res = await GET()
     expect(res.status).toBe(200)
     const body = await res.json()
-    expect(body).toHaveLength(2)
+    expect(body.notifications).toHaveLength(2)
   })
 
   it('returns 500 on DB error', async () => {
