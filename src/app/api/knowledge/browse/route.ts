@@ -58,9 +58,10 @@ export async function GET(req: NextRequest) {
       .select('id, label, summary, node_type, importance_score, mention_count, edge_count, created_at, updated_at, chat_id, visibility, source_type', { count: 'exact' })
       .eq('user_id', user.id);
 
-    // Text search: ilike on label and summary
+    // Text search: ilike on label and summary (escape ILIKE metacharacters)
     if (q) {
-      query = query.or(`label.ilike.%${q}%,summary.ilike.%${q}%,node_type.ilike.%${q}%`);
+      const escapedQ = q.replace(/[%_\\]/g, '\\$&');
+      query = query.or(`label.ilike.%${escapedQ}%,summary.ilike.%${escapedQ}%,node_type.ilike.%${escapedQ}%`);
     }
 
     // Node type filter

@@ -20,6 +20,7 @@ export default async function DashboardLayout({
       const { data } = await supabase
         .from("chats")
         .select("*")
+        .eq("owner_id", user.id)
         .order("last_message_at", { ascending: false, nullsFirst: false })
         .order("created_at", { ascending: false });
       initialChats = data || [];

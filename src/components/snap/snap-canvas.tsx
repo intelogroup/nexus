@@ -109,7 +109,7 @@ export function SnapCanvas({ messages, chatId }: SnapCanvasProps) {
       writeCache(chatId, object as SnapGraph, messages.length, hashMessages(messages))
     }
     wasLoadingRef.current = isLoading
-  }, [isLoading, object, chatId, messages.length])
+  }, [isLoading, object, chatId, messages])
 
   const handleRegenerate = () => {
     setCachedGraph(null)
@@ -182,7 +182,7 @@ export function SnapCanvas({ messages, chatId }: SnapCanvasProps) {
           variant="outline"
           size="sm"
           onClick={handleRegenerate}
-          disabled={isLoading || cachedGraph !== null}
+          disabled={isLoading}
         >
           <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
           Regenerate

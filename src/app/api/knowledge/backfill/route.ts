@@ -15,8 +15,10 @@ export async function POST(req: Request) {
 
     const url = new URL(req.url);
     const forceKg = url.searchParams.get('force_kg') === 'true';
-    const limit = Math.min(Math.max(parseInt(url.searchParams.get('limit') ?? '500') || 500, 1), 500);
-    const offset = Math.max(parseInt(url.searchParams.get('offset') ?? '0') || 0, 0);
+    const parsedLimit = Number.parseInt(url.searchParams.get('limit') ?? '500', 10);
+    const parsedOffset = Number.parseInt(url.searchParams.get('offset') ?? '0', 10);
+    const limit = Math.min(Math.max(Number.isNaN(parsedLimit) ? 500 : parsedLimit, 1), 500);
+    const offset = Math.max(Number.isNaN(parsedOffset) ? 0 : parsedOffset, 0);
 
     // Fetch user messages (RLS scopes to current user's chats)
     const { data: messages, error } = await supabase

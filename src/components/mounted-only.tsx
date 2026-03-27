@@ -10,7 +10,13 @@ export function MountedOnly({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <div style={{ visibility: mounted ? 'visible' : 'hidden' }}>
+    <div
+      aria-hidden={!mounted}
+      style={{
+        display: "contents",
+        visibility: mounted ? "visible" : "hidden",
+      }}
+    >
       {children}
     </div>
   );

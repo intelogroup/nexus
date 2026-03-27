@@ -7,8 +7,10 @@ import { logger } from '@/lib/logger';
 export async function POST(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
-    const limit  = Math.min(Math.max(parseInt(searchParams.get('limit')  ?? '20') || 20, 1), 100);
-    const offset = Math.max(parseInt(searchParams.get('offset') ?? '0') || 0, 0);
+    const rawLimit = Number.parseInt(searchParams.get('limit') ?? '20', 10);
+    const rawOffset = Number.parseInt(searchParams.get('offset') ?? '0', 10);
+    const limit = Math.min(Math.max(Number.isNaN(rawLimit) ? 20 : rawLimit, 1), 100);
+    const offset = Math.max(Number.isNaN(rawOffset) ? 0 : rawOffset, 0);
 
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();

@@ -172,6 +172,7 @@ export default function SettingsPage() {
 
   // Queue-based preference updates to prevent race conditions
   const prefSaveQueue = useRef<Record<string, boolean>>({})
+  const flushTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const prefSaving = useRef(false)
 
   const flushPrefQueue = useCallback(async () => {
@@ -223,8 +224,11 @@ export default function SettingsPage() {
     setPrefs((prev) => ({ ...prev, [key]: value }))
     setPrefsSaving(true)
     prefSaveQueue.current[key] = value
-    // Debounce: wait briefly for more toggles before sending
-    setTimeout(() => flushPrefQueue(), 300)
+    // Debounce: clear previous timer and wait briefly for more toggles
+    if (flushTimeoutRef.current) {
+      clearTimeout(flushTimeoutRef.current)
+    }
+    flushTimeoutRef.current = setTimeout(() => flushPrefQueue(), 300)
   }, [flushPrefQueue])
 
   return (
